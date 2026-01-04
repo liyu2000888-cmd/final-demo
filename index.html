@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 3D Designer V16 - Embedded Doors & Windows</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* V15 样式保持不变 */
+        :root { --primary: #ff5000; --surface: rgba(255, 255, 255, 0.96); --text: #333; --radius: 8px; --danger: #ff4d4f; }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: #f2f2f2; user-select: none; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #ui-panel { position: absolute; top: 20px; left: 20px; width: 280px; background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
+        #library-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 900px; height: 160px; background: var(--surface); border-radius: var(--radius); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); display: none; padding: 15px; box-sizing: border-box; z-index: 10; overflow-x: auto; white-space: nowrap; }
+        #library-panel::-webkit-scrollbar { height: 8px; } #library-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .lib-section { display: inline-block; vertical-align: top; margin-right: 20px; }
+        .lib-title { font-size: 12px; font-weight: bold; color: #999; margin-bottom: 8px; display: block; }
+        .item-card { display: inline-block; width: 100px; margin-right: 10px; vertical-align: top; cursor: pointer; text-align: center; position: relative; }
+        .item-img { width: 100px; height: 80px; object-fit: cover; border-radius: 4px; border: 2px solid transparent; background: #eee; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #666; }
+        .item-card:hover .item-img { border-color: var(--primary); transform: translateY(-3px); }
+        .item-name { font-size: 11px; margin-top: 5px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .delete-btn { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; background: var(--danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; z-index: 5; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .item-card:hover .delete-btn { display: flex; } .delete-btn:hover { transform: scale(1.1); }
+        .upload-card .item-img { border: 2px dashed #bbb; background: #fafafa; color: var(--primary); flex-direction: column; gap: 5px; font-size: 16px; }
+        .upload-card:hover .item-img { background: #fff0e6; border-color: var(--primary); }
+        button { width: 100%; padding: 10px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; background: white; border-radius: 4px; color: #333; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        button.active { background: var(--primary); color: white; border-color: var(--primary); } button:hover:not(.active) { background: #fff5f0; color: var(--primary); border-color: var(--primary); }
+        .measure-tag { position: absolute; background: #ff5000; color: white; padding: 2px 5px; border-radius: 3px; font-size: 12px; display: none; pointer-events: none; }
+        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 40px; border-radius: 8px; display: none; z-index: 999; text-align: center; }
+        #input-box { position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border:2px solid var(--primary); padding:15px; border-radius:8px; display:none; z-index:200; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2); }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/earcut@2.2.4/dist/earcut.min.js"></script>
+    <script src="https://unpkg.com/dxf-parser@1.1.2/dist/dxf-parser.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="loading">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+        <span id="loading-text">处理中...</span>
+    </div>
+    <div id="input-box"><div style="font-size:20px;font-weight:bold" id="input-value"></div><div style="font-size:12px;color:#999;margin-top:5px">输入长度 (mm) 按回车</div></div>
+    
+    <div id="tag0" class="measure-tag"></div><div id="tag1" class="measure-tag"></div>
+    <div id="tag2" class="measure-tag"></div><div id="tag3" class="measure-tag"></div>
+
+    <input type="file" id="dxf-input" accept=".dxf" style="display:none">
+    <input type="file" id="upload-door-input" accept=".glb,.gltf" style="display:none">
+    <input type="file" id="upload-window-input" accept=".glb,.gltf" style="display:none">
+    <input type="file" id="upload-furniture-input" accept=".glb,.gltf" style="display:none">
+
+    <div id="ui-panel">
+        <h3 style="margin:0 0 15px 0"><i class="fa-solid fa-cube" style="color:var(--primary)"></i> 户型设计器 V16</h3>
+        <button id="btn-draw" class="active" onclick="app.setMode('draw')">1. 建筑模式</button>
+        <button id="btn-view" onclick="app.setMode('view')">2. 布置模式</button>
+        
+        <div id="draw-controls">
+            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+            <button onclick="document.getElementById('dxf-input').click()"><i class="fa-solid fa-file-import"></i> 导入 CAD</button>
+            <div style="font-size:12px; color:#999; margin-top:10px;">
+                提示：键盘输入数字画墙，Z键撤回
+            </div>
+        </div>
+        
+        <div id="view-controls" style="display:none">
+            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+            <div style="font-size:12px; color:#666;">
+                <b>视觉升级：</b><br>
+                门窗现在会嵌入墙体内部，呈现穿透效果。<br>
+                <br>
+                <i class="fa-solid fa-trash" style="color:var(--danger)"></i> 点击红色按钮删除本地模型
+            </div>
+        </div>
+    </div>
+
+    <div id="library-panel">
+        <div class="lib-section">
+            <span class="lib-title">基础组件</span>
+            <div class="item-card" onclick="app.startPlacing('door')">
+                <div class="item-img" style="color:#8d6e63"><i class="fa-solid fa-door-closed"></i></div>
+                <div class="item-name">标准木门</div>
+            </div>
+            <div class="item-card" onclick="app.startPlacing('window')">
+                <div class="item-img" style="color:#88ccff"><i class="fa-regular fa-window-maximize"></i></div>
+                <div class="item-name">标准窗户</div>
+            </div>
+        </div>
+        <div class="lib-section">
+            <span class="lib-title">上传新模型</span>
+            <div class="item-card upload-card" onclick="document.getElementById('upload-door-input').click()">
+                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">门</span></div>
+            </div>
+            <div class="item-card upload-card" onclick="document.getElementById('upload-window-input').click()">
+                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">窗</span></div>
+            </div>
+            <div class="item-card upload-card" onclick="document.getElementById('upload-furniture-input').click()">
+                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">家具</span></div>
+            </div>
+        </div>
+        <div class="lib-section">
+            <span class="lib-title">我的自定义库 (本地保存)</span>
+            <div id="custom-assets-container" style="display:inline-block"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- 数据库类保持不变 (V15) ---
+        class AssetDatabase {
+            constructor() { this.dbName='DesignStudioDB';this.storeName='custom_assets';this.db=null; }
+            async init() { return new Promise((res,rej)=>{const r=indexedDB.open(this.dbName,1);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(this.storeName))db.createObjectStore(this.storeName,{keyPath:'id'})};r.onsuccess=e=>{this.db=e.target.result;res()};r.onerror=e=>rej(e)})}
+            async addAsset(f,t) { return new Promise((res,rej)=>{const tx=this.db.transaction([this.storeName],'readwrite');const rec={id:Date.now(),name:f.name,type:t,blob:f};tx.objectStore(this.storeName).add(rec).onsuccess=()=>res(rec);tx.onerror=e=>rej(e)})}
+            async getAllAssets() { return new Promise((res,rej)=>{this.db.transaction([this.storeName],'readonly').objectStore(this.storeName).getAll().onsuccess=e=>res(e.target.result);this.db.onerror=e=>rej(e)})}
+            async deleteAsset(id) { return new Promise((res,rej)=>{this.db.transaction([this.storeName],'readwrite').objectStore(this.storeName).delete(id).onsuccess=()=>res();this.db.onerror=e=>rej(e)})}
+        }
+
+        class DesignApp {
+            constructor() {
+                this.config = { wallHeight: 2.8, wallThickness: 0.12, snapDist: 0.4, alignDist: 0.5 };
+                this.state = { mode: 'draw', alignment: 'center', isDrawing: false, points: [], inputBuffer: '', placingType: null, placingMesh: null };
+                this.history = []; this.furniture = []; this.wallMeshes = [];
+                this.loadingEl = document.getElementById('loading'); this.loadingText = document.getElementById('loading-text');
+                this.inputBox = document.getElementById('input-box'); this.libraryPanel = document.getElementById('library-panel');
+                this.customContainer = document.getElementById('custom-assets-container');
+                this.tags = [document.getElementById('tag0'), document.getElementById('tag1'), document.getElementById('tag2'), document.getElementById('tag3')];
+                this.db = new AssetDatabase();
+                this.initScene(); this.initControls(); this.initMeasureUtils(); this.initInteraction();
+                this.db.init().then(() => { this.loadSavedAssets(); });
+                this.animate();
+            }
+
+            // --- 资产管理方法保持不变 (V15) ---
+            async handleUpload(f,t){this.loadingText.innerText='保存中...';this.loadingEl.style.display='block';try{const r=await this.db.addAsset(f,t);this.addAssetCard(r);this.loadAndPlaceAsset(r)}catch(e){console.error(e);alert('保存失败')}finally{this.loadingEl.style.display='none'}}
+            async loadSavedAssets(){const a=await this.db.getAllAssets();this.customContainer.innerHTML='';a.forEach(r=>this.addAssetCard(r))}
+            addAssetCard(r){const div=document.createElement('div');div.className='item-card';let c='#666',ic='fa-cube';if(r.type==='door'){ic='fa-door-closed';c='#8d6e63'}else if(r.type==='window'){ic='fa-window-maximize';c='#88ccff'}else{ic='fa-couch';c='#ff5000'}div.innerHTML=`<div class="item-img" style="color:${c}"><i class="fa-solid ${ic}"></i></div><div class="item-name">${r.name}</div><div class="delete-btn" title="删除"><i class="fa-solid fa-times"></i></div>`;div.onclick=(e)=>{if(e.target.closest('.delete-btn'))return;this.loadAndPlaceAsset(r)};div.querySelector('.delete-btn').onclick=async(e)=>{e.stopPropagation();if(confirm(`删除 "${r.name}"?`)){await this.db.deleteAsset(r.id);div.remove()}};this.customContainer.appendChild(div)}
+            loadAndPlaceAsset(r){const url=URL.createObjectURL(r.blob);const l=new GLTFLoader();this.loadingText.innerText='加载模型...';this.loadingEl.style.display='block';l.load(url,(g)=>{const m=g.scene;const b=new THREE.Box3().setFromObject(m);const s=new THREE.Vector3();b.getSize(s);const c=new THREE.Vector3();b.getCenter(c);m.position.sub(c);const grp=new THREE.Group();grp.add(m);if(r.type==='door'||r.type==='window'){const th=r.type==='door'?2.1:1.4;const sc=th/s.y;grp.scale.set(sc,sc,sc);if(r.type==='door')m.position.y+=s.y/2;grp.userData={type:r.type,isFurniture:true,isWallAttachable:true,isCustom:true}}else{const md=Math.max(s.x,s.y,s.z);const sc=1.5/md;grp.scale.set(sc,sc,sc);m.position.y+=s.y/2;grp.userData={type:'furniture',isFurniture:true,isWallAttachable:false}}grp.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true}});if(r.type==='furniture'){this.startPlacing(null,grp)}else{this.startPlacing(r.type,grp)}this.loadingEl.style.display='none'},undefined,()=>{alert('模型加载失败');this.loadingEl.style.display='none'})}
+            startPlacing(t,cm=null){if(this.state.placingMesh)this.scene.remove(this.state.placingMesh);this.state.placingType=t||'furniture';if(cm){this.state.placingMesh=cm}else{this.state.placingMesh=t==='door'?this.createDoorMesh():this.createWindowMesh()}this.state.placingMesh.traverse(c=>{if(c.isMesh){if(!c.userData.originalMat)c.userData.originalMat=c.material;c.material=c.material.clone();c.material.transparent=true;c.material.opacity=0.5}});this.scene.add(this.state.placingMesh)}
+
+            // --- 场景初始化 (V15) ---
+            initScene() { this.container=document.getElementById('canvas-container');this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xf8fafc);this.scene.fog=new THREE.Fog(0xf8fafc,20,100);this.camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);this.camera.position.set(0,20,0);this.camera.lookAt(0,0,0);this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setSize(window.innerWidth,window.innerHeight);this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.container.appendChild(this.renderer.domElement);this.grid=new THREE.GridHelper(60,60,0xe2e8f0,0xf1f5f9);this.scene.add(this.grid);this.plane=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshBasicMaterial({visible:false}));this.plane.rotation.x=-Math.PI/2;this.scene.add(this.plane);this.previewLine=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xff5000,linewidth:2}));this.scene.add(this.previewLine);const amb=new THREE.AmbientLight(0xffffff,0.7);this.scene.add(amb);const dir=new THREE.DirectionalLight(0xffffff,0.8);dir.position.set(15,25,15);dir.castShadow=true;dir.shadow.mapSize.set(2048,2048);this.scene.add(dir);this.boxHelper=new THREE.BoxHelper();this.boxHelper.material.color.set(0xff5000);this.boxHelper.visible=false;this.scene.add(this.boxHelper);this.wallMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide}); }
+            initControls() { this.orbit=new OrbitControls(this.camera,this.renderer.domElement);this.orbit.enableDamping=true;this.orbit.enableRotate=false;this.transformControl=new TransformControls(this.camera,this.renderer.domElement);this.transformControl.showY=false;this.transformControl.addEventListener('dragging-changed',e=>this.orbit.enabled=!e.value);this.transformControl.addEventListener('change',()=>{if(this.transformControl.object)this.boxHelper.update()});this.scene.add(this.transformControl);this.raycaster=new THREE.Raycaster(); }
+            initMeasureUtils() { this.measureLines=[];const mat=new THREE.LineDashedMaterial({color:0xff5000,dashSize:0.2,gapSize:0.1});for(let i=0;i<4;i++){const l=new THREE.Line(new THREE.BufferGeometry(),mat);l.visible=false;this.scene.add(l);this.measureLines.push(l)} }
+
+            // --- 核心修改：更新内置门窗模型，使其更厚，以便嵌入 ---
+            // 将深度从 0.16 增加到 0.20，确保比 0.12 的墙厚
+            createDoorMesh(){const g=new THREE.Group();const w=0.9,h=2.1,d=0.20; // 修改深度为 0.20
+                const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x5d4037}));f.position.y=h/2;g.add(f);
+                const p=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.05),new THREE.MeshStandardMaterial({color:0x8d6e63}));p.position.set(0,h/2,0); // 门板居中
+                g.add(p);const hd=new THREE.Mesh(new THREE.SphereGeometry(0.04),new THREE.MeshStandardMaterial({color:0xccc}));hd.position.set(0.35,1,0.06);g.add(hd);
+                g.userData={type:'door',isFurniture:true,isWallAttachable:true};return g;}
+            createWindowMesh(){const g=new THREE.Group();const w=1.5,h=1.4,d=0.20,sh=0.9; // 修改深度为 0.20
+                const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x333}));f.position.y=sh+h/2;g.add(f);
+                const gl=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.02),new THREE.MeshStandardMaterial({color:0x88ccff,transparent:true,opacity:0.4}));gl.position.y=sh+h/2;g.add(gl);
+                g.userData={type:'window',isFurniture:true,isWallAttachable:true};return g;}
+
+            // 其他辅助函数 (V15)
+            processDXF(f){const r=new FileReader();this.loadingText.innerText='解析DXF...';this.loadingEl.style.display='block';r.onload=e=>{try{const p=new window.DxfParser();const d=p.parseSync(e.target.result);let ls=[];if(d.entities)d.entities.forEach(en=>{if(en.type==='LINE')ls.push({s:new THREE.Vector3(en.vertices[0].x,0,en.vertices[0].y),e:new THREE.Vector3(en.vertices[1].x,0,en.vertices[1].y)})});if(!ls.length)throw 0;let mx=Infinity,Mx=-Infinity,mz=Infinity,Mz=-Infinity;ls.forEach(l=>{mx=Math.min(mx,l.s.x,l.e.x);Mx=Math.max(Mx,l.s.x,l.e.x);mz=Math.min(mz,l.s.z,l.e.z);Mz=Math.max(Mz,l.s.z,l.e.z)});const cx=(mx+Mx)/2,cz=(mz+Mz)/2,sc=(Mx-mx)>500?0.001:1;ls.forEach(l=>{const p1=new THREE.Vector3((l.s.x-cx)*sc,0,(l.s.z-cz)*-sc),p2=new THREE.Vector3((l.e.x-cx)*sc,0,(l.e.z-cz)*-sc);if(p1.distanceTo(p2)>0.2){this.createWall(p1,p2);this.createCorner(p1);this.createCorner(p2)}});this.orbit.reset();this.camera.position.set(0,30,0);}catch(e){alert('DXF解析失败')}finally{this.loadingEl.style.display='none'}};r.readAsText(f);}
+            getCursor(e){const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);this.raycaster.setFromCamera(m,this.camera);const h=this.raycaster.intersectObject(this.plane);if(h.length>0){let p=h[0].point;if(this.state.points.length>=2){const s=this.state.points[0];if(Math.abs(p.x-s.x)<this.config.alignDist)p.x=s.x;if(Math.abs(p.z-s.z)<this.config.alignDist)p.z=s.z;}if(e.shiftKey&&this.state.points.length>0){const l=this.state.points[this.state.points.length-1];const dx=Math.abs(p.x-l.x),dz=Math.abs(p.z-l.z);if(dx>dz)p.z=l.z;else p.x=l.x;}return p;}return null;}
+            undo(){if(!this.history.length)return;const l=this.history.pop();if(l.c)this.scene.remove(l.c);if(l.w){this.scene.remove(l.w);this.wallMeshes=this.wallMeshes.filter(w=>w!==l.w);}this.state.points.pop();if(!this.state.points.length){this.state.isDrawing=false;this.previewLine.geometry.setFromPoints([]);}}
+            createCorner(p){const c=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2.8,16),this.wallMaterial);c.position.copy(p);c.position.y=1.4;this.scene.add(c);return c;}
+            createWall(p1,p2){const v=new THREE.Vector3().subVectors(p2,p1),l=v.length(),a=Math.atan2(v.z,v.x);const w=new THREE.Mesh(new THREE.BoxGeometry(l,2.8,this.config.wallThickness),this.wallMaterial);const m=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5);m.y=1.4;let o=0;if(this.state.alignment==='left')o=-this.config.wallThickness/2;if(this.state.alignment==='right')o=this.config.wallThickness/2;if(o!==0){const d=v.clone().normalize(),n=new THREE.Vector3(-d.z,0,d.x);m.add(n.multiplyScalar(o));}w.position.copy(m);w.rotation.y=-a;w.castShadow=true;w.receiveShadow=true;w.userData.isWall=true;this.scene.add(w);this.wallMeshes.push(w);return w;}
+            createFloor(pts){if(pts.length<3)return;const f=pts.flatMap(p=>[p.x,p.z]),i=window.earcut(f),pos=[],uv=[];i.forEach(idx=>{const x=f[idx*2],z=f[idx*2+1];pos.push(x,0.02,z);uv.push(x/2,z/2)});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.computeVertexNormals();const fl=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xf0e6d2,roughness:0.8,side:THREE.DoubleSide}));fl.receiveShadow=true;this.scene.add(fl);}
+            selectObject(o){if(o){this.transformControl.attach(o);this.boxHelper.setFromObject(o);this.boxHelper.visible=true;if(o.userData.isWallAttachable){this.transformControl.setSpace('local');this.transformControl.showY=false;this.transformControl.showZ=false;this.transformControl.showX=true;}else{this.transformControl.setSpace('world');this.transformControl.showY=false;this.transformControl.showZ=true;this.transformControl.showX=true;}}else{this.transformControl.detach();this.boxHelper.visible=false;}}
+            updateMeasurements(){const obj=this.transformControl.object;if(!obj||this.state.mode!=='view'||this.state.placingType){this.measureLines.forEach(l=>l.visible=false);this.tags.forEach(t=>t.style.display='none');return;}const box=new THREE.Box3().setFromObject(obj);const size=new THREE.Vector3();box.getSize(size);const center=new THREE.Vector3();box.getCenter(center);const dirs=[new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)];dirs.forEach((dir,i)=>{this.raycaster.set(center,dir);const hits=this.raycaster.intersectObjects(this.wallMeshes,false);let show=false;if(hits.length>0){const hit=hits[0];let r=(i<2)?size.x/2:size.z/2;let d=hit.distance-r;if(d>0&&d<5){show=true;const start=center.clone().add(dir.clone().multiplyScalar(r));this.measureLines[i].geometry.setFromPoints([start,hit.point]);this.measureLines[i].computeLineDistances();this.measureLines[i].visible=true;const p=start.clone().add(dir.clone().multiplyScalar(d/2)).project(this.camera);const x=(p.x*.5+.5)*this.container.clientWidth;const y=(p.y*-.5+.5)*this.container.clientHeight;this.tags[i].style.display='block';this.tags[i].style.left=x+'px';this.tags[i].style.top=y+'px';this.tags[i].innerText=Math.round(d*1000);}}if(!show){this.measureLines[i].visible=false;this.tags[i].style.display='none'}})}
+
+            initInteraction() {
+                const c = this.container;
+                document.getElementById('dxf-input').addEventListener('change', e => { if(e.target.files[0]) { this.processDXF(e.target.files[0]); e.target.value=''; }});
+                document.getElementById('upload-door-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'door'); e.target.value=''; }});
+                document.getElementById('upload-window-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'window'); e.target.value=''; }});
+                document.getElementById('upload-furniture-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'furniture'); e.target.value=''; }});
+
+                c.addEventListener('pointerdown', e => {
+                    if(e.button!==0)return;
+                    if(this.state.placingType && this.state.placingMesh){
+                        if(this.state.placingMesh.visible){
+                            this.state.placingMesh.traverse(x=>{if(x.isMesh){x.material.transparent=false;x.material.opacity=1;if(x.userData.originalMat)x.material=x.userData.originalMat}});
+                            this.furniture.push(this.state.placingMesh); this.selectObject(this.state.placingMesh);
+                            this.state.placingType=null; this.state.placingMesh=null;
+                        } return;
+                    }
+                    if(this.state.mode==='draw'){
+                        if(this.state.inputBuffer)return; const p=this.getCursor(e); if(!p)return;
+                        if(this.state.isDrawing&&this.state.points.length>2&&p.distanceTo(this.state.points[0])<this.config.snapDist){
+                            this.createWall(this.state.points[this.state.points.length-1],this.state.points[0]); this.createFloor(this.state.points);
+                            this.state.points=[];this.history=[];this.state.isDrawing=false;this.previewLine.geometry.setFromPoints([]);return;
+                        }
+                        this.state.points.push(p); const cr=this.createCorner(p); let w=null;
+                        if(this.state.points.length>1) w=this.createWall(this.state.points[this.state.points.length-2],this.state.points[this.state.points.length-1]);
+                        this.history.push({c:cr,w:w}); this.state.isDrawing=true;
+                    } else {
+                        const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
+                        this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObjects(this.furniture,true);
+                        if(h.length>0){let t=h[0].object;while(t.parent&&!t.userData.isFurniture)t=t.parent;this.selectObject(t);}else this.selectObject(null);
+                    }
+                });
+
+                // --- 核心修改：PointerMove 中的嵌入逻辑 ---
+                c.addEventListener('pointermove', e => {
+                    const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
+                    if(this.state.placingType && this.state.placingMesh){
+                        if (this.state.placingType === 'furniture') {
+                            this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObject(this.plane);
+                            if(h.length>0) { this.state.placingMesh.visible = true; this.state.placingMesh.position.copy(h[0].point); }
+                        } else {
+                            // 门窗吸附逻辑
+                            this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObjects(this.wallMeshes,false);
+                            if(h.length>0){
+                                const hit=h[0]; this.state.placingMesh.visible=true; 
+                                
+                                // 1. 获取墙面法线（世界坐标）
+                                const worldNormal = hit.face.normal.clone().applyQuaternion(hit.object.quaternion).normalize();
+                                // 2. 计算嵌入偏移量（反向法线 * 半墙厚）
+                                const embedOffset = worldNormal.multiplyScalar(-this.config.wallThickness / 2);
+                                // 3. 应用位置：点击点 + 嵌入偏移
+                                this.state.placingMesh.position.copy(hit.point).add(embedOffset);
+
+                                this.state.placingMesh.rotation.y=hit.object.rotation.y;
+                                // 高度设置
+                                if (this.state.placingType === 'door') this.state.placingMesh.position.y = 0;
+                                else if (this.state.placingType === 'window' && this.state.placingMesh.userData.isCustom) this.state.placingMesh.position.y = 0.9;
+                                else if (this.state.placingType === 'window') this.state.placingMesh.position.y = 0;
+                            } else this.state.placingMesh.visible=false;
+                        }
+                        return;
+                    }
+                    if(this.state.mode==='draw'&&this.state.isDrawing){
+                        const p=this.getCursor(e); if(p){
+                            const l=this.state.points[this.state.points.length-1];
+                            if(this.state.points.length>2&&p.distanceTo(this.state.points[0])<this.config.snapDist){p.copy(this.state.points[0]);c.style.cursor='pointer';}else c.style.cursor='crosshair';
+                            this.previewLine.geometry.setFromPoints([l,p]);
+                        }
+                    }
+                });
+                window.addEventListener('keydown', e => {
+                    if(e.key==='Escape'){if(this.state.placingType){this.scene.remove(this.state.placingMesh);this.state.placingType=null;this.state.placingMesh=null;}}
+                    if(this.state.mode==='draw'&&this.state.isDrawing){
+                        if(e.key>='0'&&e.key<='9'){this.state.inputBuffer+=e.key;this.inputBox.style.display='block';document.getElementById('input-value').innerText=this.state.inputBuffer;return;}
+                        if(e.key==='Backspace'){this.state.inputBuffer=this.state.inputBuffer.slice(0,-1);if(!this.state.inputBuffer)this.inputBox.style.display='none';else document.getElementById('input-value').innerText=this.state.inputBuffer;return;}
+                        if(e.key==='Enter'&&this.state.inputBuffer){
+                            const len=parseInt(this.state.inputBuffer)/1000;
+                            if(len>0){
+                                const l=this.state.points[this.state.points.length-1];
+                                const pos=this.previewLine.geometry.attributes.position.array;
+                                const cur=new THREE.Vector3(pos[3],pos[4],pos[5]);
+                                const dir=new THREE.Vector3().subVectors(cur,l).normalize();
+                                const np=l.clone().add(dir.multiplyScalar(len));
+                                this.state.points.push(np); const cr=this.createCorner(np); const w=this.createWall(l,np);
+                                this.history.push({c:cr,w:w}); this.state.inputBuffer='';this.inputBox.style.display='none';
+                            }
+                        }
+                    }
+                    if(e.key.toLowerCase()==='z')this.undo();
+                    if(this.state.mode==='view'){
+                        if(e.key.toLowerCase()==='r'){this.transformControl.setMode('scale');this.transformControl.showY=true;this.transformControl.showX=true;this.transformControl.showZ=false;}
+                        if(e.key==='w'){this.transformControl.setMode('translate');if(this.transformControl.object?.userData.isWallAttachable){this.transformControl.showY=false;this.transformControl.showZ=false;}else{this.transformControl.showY=false;this.transformControl.showZ=true;}}
+                        if(e.key==='Delete'&&this.transformControl.object){const o=this.transformControl.object;this.selectObject(null);this.scene.remove(o);this.furniture=this.furniture.filter(f=>f!==o);}
+                    }
+                });
+            }
+            setMode(m){this.state.mode=m;document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));document.getElementById(m==='draw'?'btn-draw':'btn-view').classList.add('active');document.getElementById('draw-controls').style.display=m==='draw'?'block':'none';document.getElementById('view-controls').style.display=m==='view'?'block':'none';document.getElementById('library-panel').style.display=m==='view'?'block':'none';this.state.inputBuffer='';this.inputBox.style.display='none';this.measureLines.forEach(l=>l.visible=false);this.tags.forEach(t=>t.style.display='none');if(m==='draw'){this.selectObject(null);this.orbit.enableRotate=false;this.orbit.reset();this.camera.position.set(0,20,0);this.camera.lookAt(0,0,0);this.container.style.cursor='crosshair';this.scene.add(this.previewLine);}else{this.state.isDrawing=false;this.state.points=[];this.previewLine.geometry.setFromPoints([]);this.orbit.enableRotate=true;this.camera.position.set(10,15,15);this.camera.lookAt(0,0,0);this.container.style.cursor='default';this.scene.remove(this.previewLine);}}
+            setAlign(a){this.state.alignment=a;document.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('selected'));event.target.classList.add('selected');}
+            animate(){requestAnimationFrame(this.animate.bind(this));this.orbit.update();this.updateMeasurements();this.renderer.render(this.scene,this.camera);}
+        }
+
+        window.app = new DesignApp();
+    </script>
+</body>
+</html>
