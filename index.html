@@ -1,284 +1,1995 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web 3D Designer V16 - Embedded Doors & Windows</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>3D家装可视化 - Revit式画墙 + 门窗Host开洞</title>
 
-    <style>
-        /* V15 样式保持不变 */
-        :root { --primary: #ff5000; --surface: rgba(255, 255, 255, 0.96); --text: #333; --radius: 8px; --danger: #ff4d4f; }
-        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: #f2f2f2; user-select: none; }
-        #canvas-container { width: 100vw; height: 100vh; }
-        #ui-panel { position: absolute; top: 20px; left: 20px; width: 280px; background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
-        #library-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 900px; height: 160px; background: var(--surface); border-radius: var(--radius); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); display: none; padding: 15px; box-sizing: border-box; z-index: 10; overflow-x: auto; white-space: nowrap; }
-        #library-panel::-webkit-scrollbar { height: 8px; } #library-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        .lib-section { display: inline-block; vertical-align: top; margin-right: 20px; }
-        .lib-title { font-size: 12px; font-weight: bold; color: #999; margin-bottom: 8px; display: block; }
-        .item-card { display: inline-block; width: 100px; margin-right: 10px; vertical-align: top; cursor: pointer; text-align: center; position: relative; }
-        .item-img { width: 100px; height: 80px; object-fit: cover; border-radius: 4px; border: 2px solid transparent; background: #eee; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #666; }
-        .item-card:hover .item-img { border-color: var(--primary); transform: translateY(-3px); }
-        .item-name { font-size: 11px; margin-top: 5px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .delete-btn { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; background: var(--danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; z-index: 5; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .item-card:hover .delete-btn { display: flex; } .delete-btn:hover { transform: scale(1.1); }
-        .upload-card .item-img { border: 2px dashed #bbb; background: #fafafa; color: var(--primary); flex-direction: column; gap: 5px; font-size: 16px; }
-        .upload-card:hover .item-img { background: #fff0e6; border-color: var(--primary); }
-        button { width: 100%; padding: 10px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ddd; background: white; border-radius: 4px; color: #333; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        button.active { background: var(--primary); color: white; border-color: var(--primary); } button:hover:not(.active) { background: #fff5f0; color: var(--primary); border-color: var(--primary); }
-        .measure-tag { position: absolute; background: #ff5000; color: white; padding: 2px 5px; border-radius: 3px; font-size: 12px; display: none; pointer-events: none; }
-        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 40px; border-radius: 8px; display: none; z-index: 999; text-align: center; }
-        #input-box { position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border:2px solid var(--primary); padding:15px; border-radius:8px; display:none; z-index:200; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2); }
-    </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-    <script src="https://unpkg.com/earcut@2.2.4/dist/earcut.min.js"></script>
-    <script src="https://unpkg.com/dxf-parser@1.1.2/dist/dxf-parser.js"></script>
+  <style>
+    :root{
+      --primary:#ff5000; --primary2:#ff7a00;
+      --surface:rgba(255,255,255,0.92);
+      --text:#222; --muted:#8a8f98;
+      --danger:#ff4d4f;
+      --radius:14px;
+      --shadow:0 10px 30px rgba(0,0,0,0.16);
+      --shadow2:0 6px 16px rgba(0,0,0,0.12);
+      --border:1px solid rgba(0,0,0,0.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0; overflow:hidden; font-family:'Inter',sans-serif; background:#f2f2f2; user-select:none;}
+    #canvas-container{width:100vw;height:100vh; position:relative;}
+
+    #statusbar{
+      position:absolute; top:14px; left:50%; transform:translateX(-50%);
+      background:rgba(255,255,255,0.86);
+      border:var(--border);
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:12px; color:#333;
+      z-index:30;
+      box-shadow:var(--shadow2);
+      backdrop-filter:blur(10px);
+      display:flex; align-items:center; gap:10px;
+      white-space:nowrap;
+      max-width:calc(100vw - 24px);
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pill{
+      background:#fff;
+      border:1px solid #eee;
+      padding:4px 10px;
+      border-radius:999px;
+      color:#666;
+      display:flex; align-items:center; gap:6px;
+      white-space:nowrap;
+    }
+    .pill strong{color:var(--primary)}
+
+    #ui-panel{
+      position:absolute; top:16px; left:16px;
+      width:380px;
+      background:var(--surface);
+      border:var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:var(--shadow2);
+      z-index:20;
+      backdrop-filter:blur(10px);
+    }
+    #ui-panel h3{
+      margin:0 0 10px 0;
+      font-size:16px;
+      display:flex; align-items:center; gap:8px;
+      color:#222;
+    }
+    .panel-section{margin-top:10px; padding-top:12px; border-top:1px solid #eee;}
+    .panel-title{font-size:12px; color:var(--muted); margin:0 0 8px 0; display:flex; align-items:center; gap:8px; font-weight:800;}
+    .hint{font-size:12px; color:#666; line-height:1.6;}
+
+    button{
+      width:100%;
+      padding:10px 12px;
+      cursor:pointer;
+      border:1px solid #e7e7e7;
+      background:#fff;
+      border-radius:12px;
+      color:#333;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:all .18s ease;
+      font-weight:800;
+      margin:0 0 10px 0;
+    }
+    button.active{
+      background:var(--primary);
+      color:#fff;
+      border-color:var(--primary);
+      box-shadow:0 10px 18px rgba(255,80,0,0.22);
+    }
+    button:hover:not(.active){
+      background:#fff5f0; color:var(--primary); border-color:var(--primary);
+    }
+    .btn-row{display:flex; gap:10px;}
+    .btn-row button{margin-bottom:0;}
+    .btn-ghost{background:#fff; border:1px solid #eee; color:#333;}
+    .btn-primary{
+      border:none;
+      background:linear-gradient(135deg,var(--primary2) 0%,var(--primary) 100%);
+      color:#fff;
+      box-shadow:0 10px 18px rgba(255,80,0,0.18);
+    }
+    .btn-danger{border:none; background:linear-gradient(135deg,#ff6b6b 0%, #ff4d4f 100%); color:#fff;}
+    .btn-small{padding:9px 10px; font-size:12px;}
+
+    .mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+    .field{
+      background:#fff; border:1px solid #eee;
+      border-radius:12px; padding:10px;
+    }
+    .field-title{font-size:12px; color:#777; font-weight:800; margin-bottom:6px; display:flex; gap:6px; align-items:center;}
+    .field input[type="number"]{width:100%; border:1px solid #eee; border-radius:10px; padding:8px 10px; outline:none; font-weight:800;}
+
+    .seg{display:flex; gap:8px;}
+    .seg button{margin:0; padding:8px 10px; border-radius:999px; font-size:12px; font-weight:900;}
+    .seg button.selected{background:#111; color:#fff; border-color:#111;}
+
+    #library-panel{
+      position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+      width:min(1020px, calc(100vw - 32px));
+      height:180px;
+      background:var(--surface);
+      border-radius:var(--radius);
+      box-shadow:0 -8px 24px rgba(0,0,0,0.10);
+      display:none;
+      padding:14px;
+      z-index:20;
+      overflow-x:auto;
+      white-space:nowrap;
+      border:var(--border);
+      backdrop-filter:blur(10px);
+    }
+    #library-panel::-webkit-scrollbar{height:8px;}
+    #library-panel::-webkit-scrollbar-thumb{background:#cfcfcf; border-radius:999px;}
+
+    .lib-section{display:inline-block; vertical-align:top; margin-right:18px;}
+    .lib-title{font-size:12px; font-weight:900; color:#9aa0a8; margin-bottom:8px; display:block;}
+
+    .item-card{display:inline-block; width:108px; margin-right:10px; vertical-align:top; cursor:pointer; text-align:center; position:relative;}
+    .item-img{
+      width:108px; height:86px;
+      border-radius:12px;
+      border:2px solid transparent;
+      background:#f0f2f5;
+      transition:all .2s;
+      display:flex; align-items:center; justify-content:center;
+      font-size:24px; color:#666;
+    }
+    .item-card:hover .item-img{border-color:var(--primary); transform:translateY(-3px); background:#fff;}
+    .item-name{font-size:11px; margin-top:6px; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .delete-btn{
+      position:absolute; top:-6px; right:-6px;
+      width:22px; height:22px;
+      background:var(--danger); color:#fff;
+      border-radius:50%;
+      display:none; align-items:center; justify-content:center;
+      font-size:10px; z-index:5;
+      box-shadow:0 4px 10px rgba(0,0,0,0.18);
+    }
+    .item-card:hover .delete-btn{display:flex;}
+    .delete-btn:hover{transform:scale(1.08);}
+    .upload-card .item-img{
+      border:2px dashed #c7c7c7;
+      background:#fafafa; color:var(--primary);
+      flex-direction:column; gap:6px;
+      font-size:16px;
+    }
+    .upload-card:hover .item-img{background:#fff0e6; border-color:var(--primary);}
+
+    .measure-tag{
+      position:absolute;
+      background:#ff5000; color:#fff;
+      padding:2px 6px;
+      border-radius:10px;
+      font-size:12px;
+      display:none;
+      pointer-events:none;
+      box-shadow:0 8px 18px rgba(255,80,0,0.25);
+      z-index:25;
+    }
+
+    #loading{
+      position:fixed; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      background:rgba(0,0,0,0.85);
+      color:#fff;
+      padding:18px 26px;
+      border-radius:14px;
+      display:none;
+      z-index:999;
+      text-align:center;
+      box-shadow:var(--shadow);
+    }
+    #input-box{
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      background:#fff;
+      border:2px solid var(--primary);
+      padding:15px;
+      border-radius:14px;
+      display:none;
+      z-index:200;
+      text-align:center;
+      box-shadow:var(--shadow);
+    }
+    #toast{position:absolute; left:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:50; pointer-events:none;}
+    .toast-item{
+      background:rgba(20,20,20,0.86); color:#fff;
+      padding:10px 12px; border-radius:14px; font-size:12px;
+      width:max-content; max-width:420px; box-shadow:var(--shadow2);
+      animation:pop .16s ease-out;
+    }
+    @keyframes pop{from{transform:translateY(8px); opacity:0}to{transform:translateY(0); opacity:1}}
+  
+/* ================== 混元AI 图生3D 右侧工具栏 ================== */
+#hunyuan3d-panel{
+  position: fixed;
+  top: 90px;
+  right: 16px;
+  width: 330px;
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+  padding: 12px 12px 14px;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+#hunyuan3d-panel .hy-title{
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+#hunyuan3d-panel .hy-sub{
+  font-size: 12px;
+  color:#666;
+  line-height:1.4;
+  margin-bottom: 10px;
+}
+#hunyuan3d-panel .hy-row{ margin-bottom: 10px; }
+#hunyuan3d-panel .hy-label{
+  font-size: 12px;
+  font-weight: 800;
+  color:#333;
+  margin-bottom: 6px;
+}
+#hunyuan3d-panel .hy-select,
+#hunyuan3d-panel .hy-input{
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+}
+#hunyuan3d-panel .hy-preview{
+  width: 100%;
+  height: 170px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: #fafafa;
+  position: relative;
+  overflow: hidden;
+}
+#hunyuan3d-panel #hy-preview-img{
+  max-width: 100%;
+  max-height: 100%;
+  display:none;
+}
+#hunyuan3d-panel #hy-preview-empty{
+  font-size: 12px;
+  color:#888;
+  padding: 0 10px;
+  text-align:center;
+}
+#hunyuan3d-panel .hy-btn{
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  background: var(--primary,#ff5000);
+  color: #fff;
+}
+#hunyuan3d-panel .hy-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+#hunyuan3d-panel .hy-smallbtn{
+  border: 1px solid #e5e7eb;
+  background:#fff;
+  color:#333;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight:800;
+  cursor:pointer;
+}
+#hunyuan3d-panel .hy-status{
+  font-size: 12px;
+  color:#444;
+  background:#f7f7f9;
+  border:1px solid #eee;
+  border-radius: 10px;
+  padding: 8px 10px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+</style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/earcut@2.2.4/dist/earcut.min.js"></script>
+  <script src="https://unpkg.com/dxf-parser@1.1.2/dist/dxf-parser.js"></script>
 </head>
+
 <body>
-    <div id="canvas-container"></div>
-    <div id="loading">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-        <span id="loading-text">处理中...</span>
-    </div>
-    <div id="input-box"><div style="font-size:20px;font-weight:bold" id="input-value"></div><div style="font-size:12px;color:#999;margin-top:5px">输入长度 (mm) 按回车</div></div>
-    
-    <div id="tag0" class="measure-tag"></div><div id="tag1" class="measure-tag"></div>
-    <div id="tag2" class="measure-tag"></div><div id="tag3" class="measure-tag"></div>
+  <div id="canvas-container"></div>
 
-    <input type="file" id="dxf-input" accept=".dxf" style="display:none">
-    <input type="file" id="upload-door-input" accept=".glb,.gltf" style="display:none">
-    <input type="file" id="upload-window-input" accept=".glb,.gltf" style="display:none">
-    <input type="file" id="upload-furniture-input" accept=".glb,.gltf" style="display:none">
+  <div id="statusbar">
+    <span class="pill"><i class="fa-solid fa-layer-group"></i> 模式：<strong id="mode-pill">建筑</strong></span>
+    <span class="pill"><i class="fa-solid fa-magnet"></i> 吸附：<strong id="snap-pill">全部</strong></span>
+    <span class="pill" id="hint-pill"><i class="fa-solid fa-lightbulb"></i> 点击起点→点击终点（链式）｜右键/ESC结束｜Tab吸附｜Space翻转参照｜输入数字+Enter定长</span>
+  </div>
 
-    <div id="ui-panel">
-        <h3 style="margin:0 0 15px 0"><i class="fa-solid fa-cube" style="color:var(--primary)"></i> 户型设计器 V16</h3>
-        <button id="btn-draw" class="active" onclick="app.setMode('draw')">1. 建筑模式</button>
-        <button id="btn-view" onclick="app.setMode('view')">2. 布置模式</button>
-        
-        <div id="draw-controls">
-            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-            <button onclick="document.getElementById('dxf-input').click()"><i class="fa-solid fa-file-import"></i> 导入 CAD</button>
-            <div style="font-size:12px; color:#999; margin-top:10px;">
-                提示：键盘输入数字画墙，Z键撤回
-            </div>
-        </div>
-        
-        <div id="view-controls" style="display:none">
-            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-            <div style="font-size:12px; color:#666;">
-                <b>视觉升级：</b><br>
-                门窗现在会嵌入墙体内部，呈现穿透效果。<br>
-                <br>
-                <i class="fa-solid fa-trash" style="color:var(--danger)"></i> 点击红色按钮删除本地模型
-            </div>
-        </div>
-    </div>
+  <div id="loading">
+    <i class="fa-solid fa-spinner fa-spin" style="font-size:22px;margin-bottom:8px;"></i><br>
+    <span id="loading-text">处理中...</span>
+  </div>
 
-    <div id="library-panel">
-        <div class="lib-section">
-            <span class="lib-title">基础组件</span>
-            <div class="item-card" onclick="app.startPlacing('door')">
-                <div class="item-img" style="color:#8d6e63"><i class="fa-solid fa-door-closed"></i></div>
-                <div class="item-name">标准木门</div>
-            </div>
-            <div class="item-card" onclick="app.startPlacing('window')">
-                <div class="item-img" style="color:#88ccff"><i class="fa-regular fa-window-maximize"></i></div>
-                <div class="item-name">标准窗户</div>
-            </div>
-        </div>
-        <div class="lib-section">
-            <span class="lib-title">上传新模型</span>
-            <div class="item-card upload-card" onclick="document.getElementById('upload-door-input').click()">
-                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">门</span></div>
-            </div>
-            <div class="item-card upload-card" onclick="document.getElementById('upload-window-input').click()">
-                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">窗</span></div>
-            </div>
-            <div class="item-card upload-card" onclick="document.getElementById('upload-furniture-input').click()">
-                <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">家具</span></div>
-            </div>
-        </div>
-        <div class="lib-section">
-            <span class="lib-title">我的自定义库 (本地保存)</span>
-            <div id="custom-assets-container" style="display:inline-block"></div>
-        </div>
+  <div id="input-box">
+    <div style="font-size:20px;font-weight:900" id="input-value"></div>
+    <div style="font-size:12px;color:#999;margin-top:5px">输入长度(mm)后按 Enter</div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="tag0" class="measure-tag"></div><div id="tag1" class="measure-tag"></div>
+  <div id="tag2" class="measure-tag"></div><div id="tag3" class="measure-tag"></div>
+
+  <!-- 文件输入 -->
+  <input type="file" id="dxf-input" accept=".dxf" style="display:none">
+  <input type="file" id="upload-door-input" accept=".glb,.gltf" style="display:none">
+  <input type="file" id="upload-window-input" accept=".glb,.gltf" style="display:none">
+  <input type="file" id="upload-furniture-input" accept=".glb,.gltf" style="display:none">
+
+  <!-- 左侧UI -->
+  <div id="ui-panel">
+    <h3><i class="fa-solid fa-cube" style="color:var(--primary)"></i> Revit式画墙 + 门窗Host开洞</h3>
+
+    <div class="btn-row">
+      <button id="btn-draw" class="active" onclick="app.setMode('draw')"><i class="fa-solid fa-compass-drafting"></i> 建筑模式</button>
+      <button id="btn-view" onclick="app.setMode('view')"><i class="fa-solid fa-couch"></i> 布置模式</button>
     </div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { TransformControls } from 'three/addons/controls/TransformControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    <div id="draw-controls" class="panel-section">
+      <div class="panel-title"><i class="fa-solid fa-ruler-combined"></i> 墙体属性（像Revit一样）</div>
 
-        // --- 数据库类保持不变 (V15) ---
-        class AssetDatabase {
-            constructor() { this.dbName='DesignStudioDB';this.storeName='custom_assets';this.db=null; }
-            async init() { return new Promise((res,rej)=>{const r=indexedDB.open(this.dbName,1);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(this.storeName))db.createObjectStore(this.storeName,{keyPath:'id'})};r.onsuccess=e=>{this.db=e.target.result;res()};r.onerror=e=>rej(e)})}
-            async addAsset(f,t) { return new Promise((res,rej)=>{const tx=this.db.transaction([this.storeName],'readwrite');const rec={id:Date.now(),name:f.name,type:t,blob:f};tx.objectStore(this.storeName).add(rec).onsuccess=()=>res(rec);tx.onerror=e=>rej(e)})}
-            async getAllAssets() { return new Promise((res,rej)=>{this.db.transaction([this.storeName],'readonly').objectStore(this.storeName).getAll().onsuccess=e=>res(e.target.result);this.db.onerror=e=>rej(e)})}
-            async deleteAsset(id) { return new Promise((res,rej)=>{this.db.transaction([this.storeName],'readwrite').objectStore(this.storeName).delete(id).onsuccess=()=>res();this.db.onerror=e=>rej(e)})}
+      <div class="mini-grid">
+        <div class="field">
+          <div class="field-title"><i class="fa-solid fa-up-down"></i> 墙高 (mm)</div>
+          <input id="wall-h" type="number" value="2800" min="100" step="10" oninput="app.setWallHeightMM(this.value)">
+        </div>
+        <div class="field">
+          <div class="field-title"><i class="fa-solid fa-arrows-left-right"></i> 墙厚 (mm)</div>
+          <input id="wall-t" type="number" value="120" min="10" step="1" oninput="app.setWallThicknessMM(this.value)">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <div class="field-title"><i class="fa-solid fa-location-dot"></i> 参照线 (Location Line)</div>
+        <div class="seg">
+          <button id="ref-center" class="selected" onclick="app.setWallRef('center')">中心线</button>
+          <button id="ref-in" onclick="app.setWallRef('inside')">内侧线</button>
+          <button id="ref-out" onclick="app.setWallRef('outside')">外侧线</button>
+        </div>
+        <div class="hint" style="margin-top:8px;">Space 可翻转参照线方向（内/外交换）</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn-ghost btn-small" onclick="app.toggleWallChain()"><i class="fa-solid fa-link"></i> 链式：<span id="chain-label">开</span></button>
+        <button class="btn-ghost btn-small" onclick="app.finishWallCommand()"><i class="fa-solid fa-stop"></i> 结束画墙</button>
+      </div>
+
+      <div class="panel-title" style="margin-top:14px;"><i class="fa-solid fa-file-import"></i> DXF</div>
+      <button onclick="document.getElementById('dxf-input').click()"><i class="fa-solid fa-file-import"></i> 导入 DXF（自动建墙）</button>
+
+      <div class="hint" style="margin-top:10px;">
+        <b>画墙快捷键：</b><br>
+        - 点击起点→点击终点（默认链式）<br>
+        - 右键/ESC 结束画墙<br>
+        - Backspace / Z 撤销上一段<br>
+        - Shift 正交约束<br>
+        - Tab 吸附（全部/端点/关闭）<br>
+        - 输入数字+Enter 定长（mm）
+      </div>
+    </div>
+
+    <div id="view-controls" class="panel-section" style="display:none">
+      <div class="panel-title"><i class="fa-solid fa-door-open"></i> 门窗插入（更像Revit）</div>
+      <div class="hint">
+        1）从底部库选择门/窗<br>
+        2）把鼠标移动到墙上预览<br>
+        3）单击放置，墙体会自动挖洞<br>
+        4）选中门/窗：<b>拖动可沿墙移动</b><br>
+        5）选中门/窗：按 <b>F</b> 翻转朝向（Flip）
+      </div>
+
+      <div class="panel-title" style="margin-top:12px;"><i class="fa-solid fa-cube"></i> 变换</div>
+      <div class="hint">W 移动｜E 旋转｜R 缩放｜Delete 删除｜Esc 取消放置</div>
+    </div>
+  </div>
+
+  <!-- 底部模型库 -->
+  <div id="library-panel">
+    <div class="lib-section">
+      <span class="lib-title">基础组件（Host在墙上）</span>
+      <div class="item-card" onclick="app.startPlacing('door')">
+        <div class="item-img" style="color:#8d6e63"><i class="fa-solid fa-door-closed"></i></div>
+        <div class="item-name">标准木门</div>
+      </div>
+      <div class="item-card" onclick="app.startPlacing('window')">
+        <div class="item-img" style="color:#88ccff"><i class="fa-regular fa-window-maximize"></i></div>
+        <div class="item-name">标准窗户</div>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <span class="lib-title">上传新模型</span>
+      <div class="item-card upload-card" onclick="document.getElementById('upload-door-input').click()">
+        <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">门</span></div>
+      </div>
+      <div class="item-card upload-card" onclick="document.getElementById('upload-window-input').click()">
+        <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">窗</span></div>
+      </div>
+      <div class="item-card upload-card" onclick="document.getElementById('upload-furniture-input').click()">
+        <div class="item-img"><i class="fa-solid fa-plus"></i><span style="font-size:10px">家具</span></div>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <span class="lib-title">我的自定义库（本地）</span>
+      <div id="custom-assets-container" style="display:inline-block"></div>
+    </div>
+  </div>
+
+  
+  <!-- ================== 混元AI：图片转3D模型 工具栏（右侧）================== -->
+  <div id="hunyuan3d-panel">
+    <div class="hy-title">
+      <span>混元AI 图生3D</span>
+      <button class="hy-smallbtn" id="hy-collapse-btn" title="折叠/展开">折叠</button>
+    </div>
+    <div class="hy-sub">流程：上传图片 → 生成3D(GLB) → 自动加入“我的自定义库”并进入放置模式。</div>
+
+    <div class="hy-row">
+      <div class="hy-label">1）选择要生成的类别</div>
+      <select class="hy-select" id="hy-type">
+        <option value="furniture" selected>家具（默认）</option>
+        <option value="door">门（贴墙）</option>
+        <option value="window">窗（贴墙）</option>
+      </select>
+    </div>
+
+    <div class="hy-row">
+      <div class="hy-label">2）选择图片（png/jpg/webp，建议 &lt; 5MB）</div>
+      <input class="hy-input" id="hy-file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" />
+    </div>
+
+    <div class="hy-row">
+      <div class="hy-label">3）预览</div>
+      <div class="hy-preview">
+        <img id="hy-preview-img" alt="预览" />
+        <div id="hy-preview-empty">（请选择一张图片）</div>
+      </div>
+    </div>
+
+    <button class="hy-btn" id="hy-generate-btn" disabled>生成并放置</button>
+
+    <div class="hy-row" style="margin-top:10px;">
+      <div class="hy-label">状态</div>
+      <div class="hy-status" id="hy-status">未开始</div>
+    </div>
+  </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TransformControls } from 'three/addons/controls/TransformControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    class AssetDatabase {
+      constructor(){ this.dbName='DesignStudioDB'; this.storeName='custom_assets'; this.db=null; }
+      init(){
+        return new Promise((res,rej)=>{
+          const r=indexedDB.open(this.dbName,1);
+          r.onupgradeneeded=e=>{
+            const db=e.target.result;
+            if(!db.objectStoreNames.contains(this.storeName)){
+              db.createObjectStore(this.storeName,{keyPath:'id'});
+            }
+          };
+          r.onsuccess=e=>{ this.db=e.target.result; res(); };
+          r.onerror=e=>rej(e);
+        });
+      }
+      addAsset(file,type){
+        return new Promise((res,rej)=>{
+          const tx=this.db.transaction([this.storeName],'readwrite');
+          const rec={id:Date.now(), name:file.name, type, blob:file};
+          tx.objectStore(this.storeName).add(rec).onsuccess=()=>res(rec);
+          tx.onerror=e=>rej(e);
+        });
+      }
+      getAllAssets(){
+        return new Promise((res,rej)=>{
+          const tx=this.db.transaction([this.storeName],'readonly');
+          tx.objectStore(this.storeName).getAll().onsuccess=e=>res(e.target.result||[]);
+          tx.onerror=e=>rej(e);
+        });
+      }
+      deleteAsset(id){
+        return new Promise((res,rej)=>{
+          const tx=this.db.transaction([this.storeName],'readwrite');
+          tx.objectStore(this.storeName).delete(id).onsuccess=()=>res();
+          tx.onerror=e=>rej(e);
+        });
+      }
+    }
+
+    class DesignApp{
+      constructor(){
+        this.config = { wallHeight:2.8, wallThickness:0.12, snapDist:0.35, alignDist:0.5 };
+
+        this.state = { mode:'draw', placingType:null, placingMesh:null };
+
+        this.wallTool = {
+          drawing:false,
+          start:null,
+          lastDir:new THREE.Vector3(1,0,0),
+          chain:true,
+          ref:'center',  // center | inside | outside
+          flip:1,        // 1 / -1
+          snapMode:0,    // 0 all, 1 endpoints, 2 none
+          inputBuffer:''
+        };
+
+        // --- 核心：墙/洞/门窗host 数据 ---
+        this.wallIdCounter = 0;
+        this.openingIdCounter = 0;
+
+        this.wallMeshes = [];
+        this.cornerMeshes = [];
+        this.floorMeshes = [];
+        this.furniture = [];
+        this.history = [];
+
+        this.hoverHost = null; // {wall, offset, facingFlip}
+
+        // UI
+        this.loadingEl=document.getElementById('loading');
+        this.loadingText=document.getElementById('loading-text');
+        this.inputBox=document.getElementById('input-box');
+        this.customContainer=document.getElementById('custom-assets-container');
+        this.toastEl=document.getElementById('toast');
+        this.tags=[document.getElementById('tag0'),document.getElementById('tag1'),document.getElementById('tag2'),document.getElementById('tag3')];
+
+        this.db = new AssetDatabase();
+
+        this.initScene();
+        this.initControls();
+        this.initMeasureUtils();
+        this.initWallPreview();
+        this.initInteraction();
+
+        this.db.init().then(()=>this.loadSavedAssets());
+
+        this.animate();
+      }
+
+      /* ---------------- UI 小工具 ---------------- */
+      showToast(html, ms=2400){
+        const div=document.createElement('div');
+        div.className='toast-item';
+        div.innerHTML=html;
+        this.toastEl.appendChild(div);
+        setTimeout(()=>{
+          div.style.opacity='0';
+          div.style.transform='translateY(6px)';
+          div.style.transition='all .2s ease';
+          setTimeout(()=>div.remove(),220);
+        }, ms);
+      }
+      setLoading(show, text='处理中...'){
+        this.loadingText.innerText=text;
+        this.loadingEl.style.display=show?'block':'none';
+      }
+      escapeHTML(s){
+        return String(s).replace(/[&<>"']/g, (m)=>{
+          if(m==='&') return '&amp;';
+          if(m==='<') return '&lt;';
+          if(m==='>') return '&gt;';
+          if(m==='"') return '&quot;';
+          return '&#039;';
+        });
+      }
+
+      /* ---------------- 墙参数 ---------------- */
+      setWallHeightMM(v){ this.config.wallHeight = Math.max(0.1,(parseFloat(v)||2800)/1000); }
+      setWallThicknessMM(v){ this.config.wallThickness = Math.max(0.01,(parseFloat(v)||120)/1000); }
+      toggleWallChain(){
+        this.wallTool.chain=!this.wallTool.chain;
+        document.getElementById('chain-label').innerText=this.wallTool.chain?'开':'关';
+        this.showToast('链式画墙：<b>'+(this.wallTool.chain?'开启':'关闭')+'</b>',1400);
+      }
+      setWallRef(ref){
+        this.wallTool.ref=ref;
+        ['ref-center','ref-in','ref-out'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+        if(ref==='center') document.getElementById('ref-center').classList.add('selected');
+        if(ref==='inside') document.getElementById('ref-in').classList.add('selected');
+        if(ref==='outside') document.getElementById('ref-out').classList.add('selected');
+        this.showToast('参照线：<b>'+(ref==='center'?'中心线':(ref==='inside'?'内侧线':'外侧线'))+'</b>',1400);
+      }
+      finishWallCommand(){
+        if(this.state.mode!=='draw') return;
+        this.endWallDrawing(true);
+        this.showToast('已结束画墙', 1200);
+      }
+
+      /* ---------------- 场景 ---------------- */
+      initScene(){
+        this.container=document.getElementById('canvas-container');
+        this.scene=new THREE.Scene();
+        this.scene.background=new THREE.Color(0xf8fafc);
+        this.scene.fog=new THREE.Fog(0xf8fafc, 20, 110);
+
+        this.camera=new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 2000);
+        this.camera.position.set(0,20,0);
+        this.camera.lookAt(0,0,0);
+
+        this.renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled=true;
+        this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        this.container.appendChild(this.renderer.domElement);
+
+        const amb=new THREE.AmbientLight(0xffffff, 0.7);
+        this.scene.add(amb);
+        const dir=new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(15,25,15);
+        dir.castShadow=true;
+        dir.shadow.mapSize.set(2048,2048);
+        this.scene.add(dir);
+
+        this.grid=new THREE.GridHelper(60,60,0xe2e8f0,0xf1f5f9);
+        this.scene.add(this.grid);
+
+        this.plane=new THREE.Mesh(
+          new THREE.PlaneGeometry(400,400),
+          new THREE.MeshBasicMaterial({visible:false})
+        );
+        this.plane.rotation.x=-Math.PI/2;
+        this.scene.add(this.plane);
+
+        this.boxHelper=new THREE.BoxHelper();
+        this.boxHelper.material.color.set(0xff5000);
+        this.boxHelper.visible=false;
+        this.scene.add(this.boxHelper);
+
+        this.wallMaterial=new THREE.MeshStandardMaterial({
+          color:0xffffff, roughness:0.35,
+          transparent:true, opacity:0.70,
+          side:THREE.DoubleSide
+        });
+
+        window.addEventListener('resize', ()=>this.onResize());
+      }
+      onResize(){
+        this.camera.aspect=window.innerWidth/window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      initControls(){
+        this.orbit=new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbit.enableDamping=true;
+        this.orbit.enableRotate=false;
+        this.orbit.enablePan=false;
+
+        this.transformControl=new TransformControls(this.camera, this.renderer.domElement);
+        this.transformControl.showY=false;
+        this.transformControl.addEventListener('dragging-changed', (e)=>{
+          this.orbit.enabled=!e.value;
+          if(!e.value){
+            // 拖动结束：如果是hosted door/window，则更新洞
+            const obj=this.transformControl.object;
+            if(obj && obj.userData && obj.userData.hostWallId){
+              const wall=this.findWallById(obj.userData.hostWallId);
+              if(wall){
+                this.syncHostedObjectToWall(obj, wall, true); // true: rebuild hole
+              }
+            }
+          }
+        });
+        this.transformControl.addEventListener('change', ()=>{
+          const obj=this.transformControl.object;
+          if(obj){
+            this.boxHelper.update();
+            // 拖动过程中：让门窗保持贴墙 & 只沿墙移动（实时限制）
+            if(obj.userData && obj.userData.hostWallId){
+              const wall=this.findWallById(obj.userData.hostWallId);
+              if(wall) this.syncHostedObjectToWall(obj, wall, false); // false: 不实时重建洞
+            }
+          }
+        });
+        this.scene.add(this.transformControl);
+
+        this.raycaster=new THREE.Raycaster();
+      }
+
+      initMeasureUtils(){
+        this.measureLines=[];
+        const mat=new THREE.LineDashedMaterial({color:0xff5000,dashSize:0.2,gapSize:0.1});
+        for(let i=0;i<4;i++){
+          const l=new THREE.Line(new THREE.BufferGeometry(), mat);
+          l.visible=false;
+          this.scene.add(l);
+          this.measureLines.push(l);
+        }
+      }
+
+      /* ---------------- Revit式墙预览 ---------------- */
+      initWallPreview(){
+        const mat=new THREE.MeshStandardMaterial({
+          color:0xff5000, roughness:0.4, transparent:true, opacity:0.25
+        });
+        this.previewWall=new THREE.Mesh(new THREE.BoxGeometry(1,1,1), mat);
+        this.previewWall.visible=false;
+        this.previewWall.renderOrder=10;
+        this.scene.add(this.previewWall);
+
+        this.previewLine=new THREE.Line(
+          new THREE.BufferGeometry(),
+          new THREE.LineBasicMaterial({color:0xff5000})
+        );
+        this.previewLine.visible=false;
+        this.scene.add(this.previewLine);
+
+        this.wallDimTag=this.tags[0];
+      }
+      showWallDim(midWorld, mm){
+        const p=midWorld.clone().project(this.camera);
+        const x=(p.x*0.5+0.5)*this.container.clientWidth;
+        const y=(p.y*-0.5+0.5)*this.container.clientHeight;
+        this.wallDimTag.style.display='block';
+        this.wallDimTag.style.left=x+'px';
+        this.wallDimTag.style.top=y+'px';
+        this.wallDimTag.innerText=mm+'mm';
+      }
+      hideWallDim(){ this.wallDimTag.style.display='none'; }
+
+      /* ---------------- 吸附 ---------------- */
+      getSnapCandidates(){
+        const pts=[];
+        for(const c of this.cornerMeshes){
+          pts.push(c.position.clone().setY(0));
+        }
+        if(pts.length===0){
+          for(const w of this.wallMeshes){
+            const d=w.userData.wallData;
+            if(!d) continue;
+            pts.push(new THREE.Vector3(d.p1[0],0,d.p1[1]));
+            pts.push(new THREE.Vector3(d.p2[0],0,d.p2[1]));
+          }
+        }
+        return pts;
+      }
+      findSnap(p){
+        if(this.wallTool.snapMode===2) return {point:p, snapped:false};
+        const candidates=this.getSnapCandidates();
+        let best=null, bestDist=Infinity;
+        for(const s of candidates){
+          const dx=s.x-p.x, dz=s.z-p.z;
+          const dist=Math.sqrt(dx*dx+dz*dz);
+          if(dist<bestDist){ bestDist=dist; best=s; }
+        }
+        if(best && bestDist<=this.config.snapDist) return {point:best.clone(), snapped:true};
+        return {point:p, snapped:false};
+      }
+      applyOrtho(start,end){
+        const v=end.clone().sub(start);
+        if(Math.abs(v.x)>Math.abs(v.z)) end.z=start.z;
+        else end.x=start.x;
+        return end;
+      }
+      applyRefOffset(start,end){
+        if(this.wallTool.ref==='center') return {start,end};
+        const t=this.config.wallThickness;
+        const v=end.clone().sub(start);
+        const len=v.length();
+        if(len<1e-6) return {start,end};
+        const dir=v.clone().normalize();
+        const n=new THREE.Vector3(-dir.z,0,dir.x); // 左法线=墙local +Z
+        const sign=(this.wallTool.ref==='inside')?-1:1;
+        const off=n.multiplyScalar((t/2)*sign*this.wallTool.flip);
+        return {start:start.clone().add(off), end:end.clone().add(off)};
+      }
+
+      updateWallPreviewFrom(startWorld, cursorWorld, ortho){
+        let end=cursorWorld.clone();
+        if(ortho) end=this.applyOrtho(startWorld,end);
+        const snapRes=this.findSnap(end);
+        end.copy(snapRes.point);
+
+        const v=end.clone().sub(startWorld);
+        const len=v.length();
+        if(len<1e-4){
+          this.previewWall.visible=false;
+          this.previewLine.visible=false;
+          this.hideWallDim();
+          return {end, ok:false};
+        }
+        const dir=v.clone().normalize();
+        this.wallTool.lastDir.copy(dir);
+
+        const refRes=this.applyRefOffset(startWorld,end);
+        const a=refRes.start, b=refRes.end;
+
+        const v2=b.clone().sub(a);
+        const len2=v2.length();
+        const angle=Math.atan2(v2.z,v2.x);
+        const mid=a.clone().add(b).multiplyScalar(0.5);
+        mid.y=this.config.wallHeight/2;
+
+        this.previewWall.visible=true;
+        this.previewWall.position.copy(mid);
+        this.previewWall.rotation.set(0,-angle,0);
+        this.previewWall.scale.set(len2, this.config.wallHeight, this.config.wallThickness);
+
+        this.previewLine.visible=true;
+        this.previewLine.geometry.setFromPoints([startWorld,end]);
+
+        this.showWallDim(startWorld.clone().add(end).multiplyScalar(0.5), Math.round(len*1000));
+        return {end, ok:true};
+      }
+
+      beginWallDrawing(start){
+        this.wallTool.drawing=true;
+        this.wallTool.start=start.clone();
+        this.previewWall.visible=false;
+        this.previewLine.visible=true;
+        this.showToast('已选起点：移动预览墙体，点击落点；右键/ESC结束', 2200);
+      }
+      endWallDrawing(clearStart){
+        this.wallTool.drawing=false;
+        if(clearStart) this.wallTool.start=null;
+        this.previewWall.visible=false;
+        this.previewLine.visible=false;
+        this.hideWallDim();
+        this.wallTool.inputBuffer='';
+        this.inputBox.style.display='none';
+      }
+
+      /* ---------------- 墙体：真正支持洞（关键实现） ---------------- */
+      buildWallGeometry(len, height, thickness, openings){
+        // Shape：XY平面（X=墙长，Y=高度），挤出Z=厚度
+        const halfL=len/2;
+        const halfH=height/2;
+
+        const shape=new THREE.Shape();
+        shape.moveTo(-halfL, -halfH);
+        shape.lineTo( halfL, -halfH);
+        shape.lineTo( halfL,  halfH);
+        shape.lineTo(-halfL,  halfH);
+        shape.lineTo(-halfL, -halfH);
+
+        if(Array.isArray(openings)){
+          for(const op of openings){
+            const w=Math.max(0.01, op.w||0.9);
+            const h=Math.max(0.01, op.h||2.1);
+            const sill=Math.max(0, op.sill||0);
+            const cx=-halfL + (op.offset||0); // offset: 从墙起点(p1)开始的距离(米)
+            const x0=cx - w/2;
+            const x1=cx + w/2;
+
+            const y0=-halfH + sill;
+            const y1=y0 + h;
+
+            // clamp，避免洞超出墙体导致几何错误
+            const pad=0.02;
+            const xx0=Math.max(-halfL+pad, x0);
+            const xx1=Math.min( halfL-pad, x1);
+            const yy0=Math.max(-halfH+pad, y0);
+            const yy1=Math.min( halfH-pad, y1);
+            if(xx1-xx0<0.02 || yy1-yy0<0.02) continue;
+
+            const hole=new THREE.Path();
+            hole.moveTo(xx0, yy0);
+            hole.lineTo(xx1, yy0);
+            hole.lineTo(xx1, yy1);
+            hole.lineTo(xx0, yy1);
+            hole.lineTo(xx0, yy0);
+            shape.holes.push(hole);
+          }
         }
 
-        class DesignApp {
-            constructor() {
-                this.config = { wallHeight: 2.8, wallThickness: 0.12, snapDist: 0.4, alignDist: 0.5 };
-                this.state = { mode: 'draw', alignment: 'center', isDrawing: false, points: [], inputBuffer: '', placingType: null, placingMesh: null };
-                this.history = []; this.furniture = []; this.wallMeshes = [];
-                this.loadingEl = document.getElementById('loading'); this.loadingText = document.getElementById('loading-text');
-                this.inputBox = document.getElementById('input-box'); this.libraryPanel = document.getElementById('library-panel');
-                this.customContainer = document.getElementById('custom-assets-container');
-                this.tags = [document.getElementById('tag0'), document.getElementById('tag1'), document.getElementById('tag2'), document.getElementById('tag3')];
-                this.db = new AssetDatabase();
-                this.initScene(); this.initControls(); this.initMeasureUtils(); this.initInteraction();
-                this.db.init().then(() => { this.loadSavedAssets(); });
-                this.animate();
-            }
+        const geo=new THREE.ExtrudeGeometry(shape, {
+          depth: thickness,
+          bevelEnabled:false,
+          steps:1
+        });
+        // Extrude默认Z从0到depth，居中到[-depth/2, depth/2]
+        geo.translate(0,0,-thickness/2);
+        geo.computeVertexNormals();
+        return geo;
+      }
 
-            // --- 资产管理方法保持不变 (V15) ---
-            async handleUpload(f,t){this.loadingText.innerText='保存中...';this.loadingEl.style.display='block';try{const r=await this.db.addAsset(f,t);this.addAssetCard(r);this.loadAndPlaceAsset(r)}catch(e){console.error(e);alert('保存失败')}finally{this.loadingEl.style.display='none'}}
-            async loadSavedAssets(){const a=await this.db.getAllAssets();this.customContainer.innerHTML='';a.forEach(r=>this.addAssetCard(r))}
-            addAssetCard(r){const div=document.createElement('div');div.className='item-card';let c='#666',ic='fa-cube';if(r.type==='door'){ic='fa-door-closed';c='#8d6e63'}else if(r.type==='window'){ic='fa-window-maximize';c='#88ccff'}else{ic='fa-couch';c='#ff5000'}div.innerHTML=`<div class="item-img" style="color:${c}"><i class="fa-solid ${ic}"></i></div><div class="item-name">${r.name}</div><div class="delete-btn" title="删除"><i class="fa-solid fa-times"></i></div>`;div.onclick=(e)=>{if(e.target.closest('.delete-btn'))return;this.loadAndPlaceAsset(r)};div.querySelector('.delete-btn').onclick=async(e)=>{e.stopPropagation();if(confirm(`删除 "${r.name}"?`)){await this.db.deleteAsset(r.id);div.remove()}};this.customContainer.appendChild(div)}
-            loadAndPlaceAsset(r){const url=URL.createObjectURL(r.blob);const l=new GLTFLoader();this.loadingText.innerText='加载模型...';this.loadingEl.style.display='block';l.load(url,(g)=>{const m=g.scene;const b=new THREE.Box3().setFromObject(m);const s=new THREE.Vector3();b.getSize(s);const c=new THREE.Vector3();b.getCenter(c);m.position.sub(c);const grp=new THREE.Group();grp.add(m);if(r.type==='door'||r.type==='window'){const th=r.type==='door'?2.1:1.4;const sc=th/s.y;grp.scale.set(sc,sc,sc);if(r.type==='door')m.position.y+=s.y/2;grp.userData={type:r.type,isFurniture:true,isWallAttachable:true,isCustom:true}}else{const md=Math.max(s.x,s.y,s.z);const sc=1.5/md;grp.scale.set(sc,sc,sc);m.position.y+=s.y/2;grp.userData={type:'furniture',isFurniture:true,isWallAttachable:false}}grp.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true}});if(r.type==='furniture'){this.startPlacing(null,grp)}else{this.startPlacing(r.type,grp)}this.loadingEl.style.display='none'},undefined,()=>{alert('模型加载失败');this.loadingEl.style.display='none'})}
-            startPlacing(t,cm=null){if(this.state.placingMesh)this.scene.remove(this.state.placingMesh);this.state.placingType=t||'furniture';if(cm){this.state.placingMesh=cm}else{this.state.placingMesh=t==='door'?this.createDoorMesh():this.createWindowMesh()}this.state.placingMesh.traverse(c=>{if(c.isMesh){if(!c.userData.originalMat)c.userData.originalMat=c.material;c.material=c.material.clone();c.material.transparent=true;c.material.opacity=0.5}});this.scene.add(this.state.placingMesh)}
+      rebuildWallMesh(wall){
+        const d=wall.userData.wallData;
+        if(!d) return;
+        const p1=new THREE.Vector3(d.p1[0],0,d.p1[1]);
+        const p2=new THREE.Vector3(d.p2[0],0,d.p2[1]);
+        const v=p2.clone().sub(p1);
+        const len=v.length();
+        if(len<0.05) return;
 
-            // --- 场景初始化 (V15) ---
-            initScene() { this.container=document.getElementById('canvas-container');this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xf8fafc);this.scene.fog=new THREE.Fog(0xf8fafc,20,100);this.camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);this.camera.position.set(0,20,0);this.camera.lookAt(0,0,0);this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setSize(window.innerWidth,window.innerHeight);this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.container.appendChild(this.renderer.domElement);this.grid=new THREE.GridHelper(60,60,0xe2e8f0,0xf1f5f9);this.scene.add(this.grid);this.plane=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshBasicMaterial({visible:false}));this.plane.rotation.x=-Math.PI/2;this.scene.add(this.plane);this.previewLine=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xff5000,linewidth:2}));this.scene.add(this.previewLine);const amb=new THREE.AmbientLight(0xffffff,0.7);this.scene.add(amb);const dir=new THREE.DirectionalLight(0xffffff,0.8);dir.position.set(15,25,15);dir.castShadow=true;dir.shadow.mapSize.set(2048,2048);this.scene.add(dir);this.boxHelper=new THREE.BoxHelper();this.boxHelper.material.color.set(0xff5000);this.boxHelper.visible=false;this.scene.add(this.boxHelper);this.wallMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide}); }
-            initControls() { this.orbit=new OrbitControls(this.camera,this.renderer.domElement);this.orbit.enableDamping=true;this.orbit.enableRotate=false;this.transformControl=new TransformControls(this.camera,this.renderer.domElement);this.transformControl.showY=false;this.transformControl.addEventListener('dragging-changed',e=>this.orbit.enabled=!e.value);this.transformControl.addEventListener('change',()=>{if(this.transformControl.object)this.boxHelper.update()});this.scene.add(this.transformControl);this.raycaster=new THREE.Raycaster(); }
-            initMeasureUtils() { this.measureLines=[];const mat=new THREE.LineDashedMaterial({color:0xff5000,dashSize:0.2,gapSize:0.1});for(let i=0;i<4;i++){const l=new THREE.Line(new THREE.BufferGeometry(),mat);l.visible=false;this.scene.add(l);this.measureLines.push(l)} }
+        const height=d.height || this.config.wallHeight;
+        const thickness=d.thickness || this.config.wallThickness;
+        const openings=d.openings || [];
 
-            // --- 核心修改：更新内置门窗模型，使其更厚，以便嵌入 ---
-            // 将深度从 0.16 增加到 0.20，确保比 0.12 的墙厚
-            createDoorMesh(){const g=new THREE.Group();const w=0.9,h=2.1,d=0.20; // 修改深度为 0.20
-                const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x5d4037}));f.position.y=h/2;g.add(f);
-                const p=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.05),new THREE.MeshStandardMaterial({color:0x8d6e63}));p.position.set(0,h/2,0); // 门板居中
-                g.add(p);const hd=new THREE.Mesh(new THREE.SphereGeometry(0.04),new THREE.MeshStandardMaterial({color:0xccc}));hd.position.set(0.35,1,0.06);g.add(hd);
-                g.userData={type:'door',isFurniture:true,isWallAttachable:true};return g;}
-            createWindowMesh(){const g=new THREE.Group();const w=1.5,h=1.4,d=0.20,sh=0.9; // 修改深度为 0.20
-                const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x333}));f.position.y=sh+h/2;g.add(f);
-                const gl=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.02),new THREE.MeshStandardMaterial({color:0x88ccff,transparent:true,opacity:0.4}));gl.position.y=sh+h/2;g.add(gl);
-                g.userData={type:'window',isFurniture:true,isWallAttachable:true};return g;}
+        const newGeo=this.buildWallGeometry(len, height, thickness, openings);
 
-            // 其他辅助函数 (V15)
-            processDXF(f){const r=new FileReader();this.loadingText.innerText='解析DXF...';this.loadingEl.style.display='block';r.onload=e=>{try{const p=new window.DxfParser();const d=p.parseSync(e.target.result);let ls=[];if(d.entities)d.entities.forEach(en=>{if(en.type==='LINE')ls.push({s:new THREE.Vector3(en.vertices[0].x,0,en.vertices[0].y),e:new THREE.Vector3(en.vertices[1].x,0,en.vertices[1].y)})});if(!ls.length)throw 0;let mx=Infinity,Mx=-Infinity,mz=Infinity,Mz=-Infinity;ls.forEach(l=>{mx=Math.min(mx,l.s.x,l.e.x);Mx=Math.max(Mx,l.s.x,l.e.x);mz=Math.min(mz,l.s.z,l.e.z);Mz=Math.max(Mz,l.s.z,l.e.z)});const cx=(mx+Mx)/2,cz=(mz+Mz)/2,sc=(Mx-mx)>500?0.001:1;ls.forEach(l=>{const p1=new THREE.Vector3((l.s.x-cx)*sc,0,(l.s.z-cz)*-sc),p2=new THREE.Vector3((l.e.x-cx)*sc,0,(l.e.z-cz)*-sc);if(p1.distanceTo(p2)>0.2){this.createWall(p1,p2);this.createCorner(p1);this.createCorner(p2)}});this.orbit.reset();this.camera.position.set(0,30,0);}catch(e){alert('DXF解析失败')}finally{this.loadingEl.style.display='none'}};r.readAsText(f);}
-            getCursor(e){const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);this.raycaster.setFromCamera(m,this.camera);const h=this.raycaster.intersectObject(this.plane);if(h.length>0){let p=h[0].point;if(this.state.points.length>=2){const s=this.state.points[0];if(Math.abs(p.x-s.x)<this.config.alignDist)p.x=s.x;if(Math.abs(p.z-s.z)<this.config.alignDist)p.z=s.z;}if(e.shiftKey&&this.state.points.length>0){const l=this.state.points[this.state.points.length-1];const dx=Math.abs(p.x-l.x),dz=Math.abs(p.z-l.z);if(dx>dz)p.z=l.z;else p.x=l.x;}return p;}return null;}
-            undo(){if(!this.history.length)return;const l=this.history.pop();if(l.c)this.scene.remove(l.c);if(l.w){this.scene.remove(l.w);this.wallMeshes=this.wallMeshes.filter(w=>w!==l.w);}this.state.points.pop();if(!this.state.points.length){this.state.isDrawing=false;this.previewLine.geometry.setFromPoints([]);}}
-            createCorner(p){const c=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2.8,16),this.wallMaterial);c.position.copy(p);c.position.y=1.4;this.scene.add(c);return c;}
-            createWall(p1,p2){const v=new THREE.Vector3().subVectors(p2,p1),l=v.length(),a=Math.atan2(v.z,v.x);const w=new THREE.Mesh(new THREE.BoxGeometry(l,2.8,this.config.wallThickness),this.wallMaterial);const m=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5);m.y=1.4;let o=0;if(this.state.alignment==='left')o=-this.config.wallThickness/2;if(this.state.alignment==='right')o=this.config.wallThickness/2;if(o!==0){const d=v.clone().normalize(),n=new THREE.Vector3(-d.z,0,d.x);m.add(n.multiplyScalar(o));}w.position.copy(m);w.rotation.y=-a;w.castShadow=true;w.receiveShadow=true;w.userData.isWall=true;this.scene.add(w);this.wallMeshes.push(w);return w;}
-            createFloor(pts){if(pts.length<3)return;const f=pts.flatMap(p=>[p.x,p.z]),i=window.earcut(f),pos=[],uv=[];i.forEach(idx=>{const x=f[idx*2],z=f[idx*2+1];pos.push(x,0.02,z);uv.push(x/2,z/2)});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.computeVertexNormals();const fl=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xf0e6d2,roughness:0.8,side:THREE.DoubleSide}));fl.receiveShadow=true;this.scene.add(fl);}
-            selectObject(o){if(o){this.transformControl.attach(o);this.boxHelper.setFromObject(o);this.boxHelper.visible=true;if(o.userData.isWallAttachable){this.transformControl.setSpace('local');this.transformControl.showY=false;this.transformControl.showZ=false;this.transformControl.showX=true;}else{this.transformControl.setSpace('world');this.transformControl.showY=false;this.transformControl.showZ=true;this.transformControl.showX=true;}}else{this.transformControl.detach();this.boxHelper.visible=false;}}
-            updateMeasurements(){const obj=this.transformControl.object;if(!obj||this.state.mode!=='view'||this.state.placingType){this.measureLines.forEach(l=>l.visible=false);this.tags.forEach(t=>t.style.display='none');return;}const box=new THREE.Box3().setFromObject(obj);const size=new THREE.Vector3();box.getSize(size);const center=new THREE.Vector3();box.getCenter(center);const dirs=[new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)];dirs.forEach((dir,i)=>{this.raycaster.set(center,dir);const hits=this.raycaster.intersectObjects(this.wallMeshes,false);let show=false;if(hits.length>0){const hit=hits[0];let r=(i<2)?size.x/2:size.z/2;let d=hit.distance-r;if(d>0&&d<5){show=true;const start=center.clone().add(dir.clone().multiplyScalar(r));this.measureLines[i].geometry.setFromPoints([start,hit.point]);this.measureLines[i].computeLineDistances();this.measureLines[i].visible=true;const p=start.clone().add(dir.clone().multiplyScalar(d/2)).project(this.camera);const x=(p.x*.5+.5)*this.container.clientWidth;const y=(p.y*-.5+.5)*this.container.clientHeight;this.tags[i].style.display='block';this.tags[i].style.left=x+'px';this.tags[i].style.top=y+'px';this.tags[i].innerText=Math.round(d*1000);}}if(!show){this.measureLines[i].visible=false;this.tags[i].style.display='none'}})}
+        // 释放旧几何
+        if(wall.geometry) wall.geometry.dispose();
+        wall.geometry=newGeo;
+        wall.castShadow=true;
+        wall.receiveShadow=true;
+      }
 
-            initInteraction() {
-                const c = this.container;
-                document.getElementById('dxf-input').addEventListener('change', e => { if(e.target.files[0]) { this.processDXF(e.target.files[0]); e.target.value=''; }});
-                document.getElementById('upload-door-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'door'); e.target.value=''; }});
-                document.getElementById('upload-window-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'window'); e.target.value=''; }});
-                document.getElementById('upload-furniture-input').addEventListener('change', e => { if(e.target.files[0]) { this.handleUpload(e.target.files[0], 'furniture'); e.target.value=''; }});
+      findWallById(id){
+        return this.wallMeshes.find(w=>w.userData.wallId===id) || null;
+      }
 
-                c.addEventListener('pointerdown', e => {
-                    if(e.button!==0)return;
-                    if(this.state.placingType && this.state.placingMesh){
-                        if(this.state.placingMesh.visible){
-                            this.state.placingMesh.traverse(x=>{if(x.isMesh){x.material.transparent=false;x.material.opacity=1;if(x.userData.originalMat)x.material=x.userData.originalMat}});
-                            this.furniture.push(this.state.placingMesh); this.selectObject(this.state.placingMesh);
-                            this.state.placingType=null; this.state.placingMesh=null;
-                        } return;
-                    }
-                    if(this.state.mode==='draw'){
-                        if(this.state.inputBuffer)return; const p=this.getCursor(e); if(!p)return;
-                        if(this.state.isDrawing&&this.state.points.length>2&&p.distanceTo(this.state.points[0])<this.config.snapDist){
-                            this.createWall(this.state.points[this.state.points.length-1],this.state.points[0]); this.createFloor(this.state.points);
-                            this.state.points=[];this.history=[];this.state.isDrawing=false;this.previewLine.geometry.setFromPoints([]);return;
-                        }
-                        this.state.points.push(p); const cr=this.createCorner(p); let w=null;
-                        if(this.state.points.length>1) w=this.createWall(this.state.points[this.state.points.length-2],this.state.points[this.state.points.length-1]);
-                        this.history.push({c:cr,w:w}); this.state.isDrawing=true;
-                    } else {
-                        const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
-                        this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObjects(this.furniture,true);
-                        if(h.length>0){let t=h[0].object;while(t.parent&&!t.userData.isFurniture)t=t.parent;this.selectObject(t);}else this.selectObject(null);
-                    }
-                });
+      createWall(p1, p2, opts=null){
+        const height=(opts&&opts.height)?opts.height:this.config.wallHeight;
+        const thickness=(opts&&opts.thickness)?opts.thickness:this.config.wallThickness;
 
-                // --- 核心修改：PointerMove 中的嵌入逻辑 ---
-                c.addEventListener('pointermove', e => {
-                    const m=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
-                    if(this.state.placingType && this.state.placingMesh){
-                        if (this.state.placingType === 'furniture') {
-                            this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObject(this.plane);
-                            if(h.length>0) { this.state.placingMesh.visible = true; this.state.placingMesh.position.copy(h[0].point); }
-                        } else {
-                            // 门窗吸附逻辑
-                            this.raycaster.setFromCamera(m,this.camera); const h=this.raycaster.intersectObjects(this.wallMeshes,false);
-                            if(h.length>0){
-                                const hit=h[0]; this.state.placingMesh.visible=true; 
-                                
-                                // 1. 获取墙面法线（世界坐标）
-                                const worldNormal = hit.face.normal.clone().applyQuaternion(hit.object.quaternion).normalize();
-                                // 2. 计算嵌入偏移量（反向法线 * 半墙厚）
-                                const embedOffset = worldNormal.multiplyScalar(-this.config.wallThickness / 2);
-                                // 3. 应用位置：点击点 + 嵌入偏移
-                                this.state.placingMesh.position.copy(hit.point).add(embedOffset);
+        const v=p2.clone().sub(p1);
+        const len=v.length();
+        if(len<0.05) return null;
 
-                                this.state.placingMesh.rotation.y=hit.object.rotation.y;
-                                // 高度设置
-                                if (this.state.placingType === 'door') this.state.placingMesh.position.y = 0;
-                                else if (this.state.placingType === 'window' && this.state.placingMesh.userData.isCustom) this.state.placingMesh.position.y = 0.9;
-                                else if (this.state.placingType === 'window') this.state.placingMesh.position.y = 0;
-                            } else this.state.placingMesh.visible=false;
-                        }
-                        return;
-                    }
-                    if(this.state.mode==='draw'&&this.state.isDrawing){
-                        const p=this.getCursor(e); if(p){
-                            const l=this.state.points[this.state.points.length-1];
-                            if(this.state.points.length>2&&p.distanceTo(this.state.points[0])<this.config.snapDist){p.copy(this.state.points[0]);c.style.cursor='pointer';}else c.style.cursor='crosshair';
-                            this.previewLine.geometry.setFromPoints([l,p]);
-                        }
-                    }
-                });
-                window.addEventListener('keydown', e => {
-                    if(e.key==='Escape'){if(this.state.placingType){this.scene.remove(this.state.placingMesh);this.state.placingType=null;this.state.placingMesh=null;}}
-                    if(this.state.mode==='draw'&&this.state.isDrawing){
-                        if(e.key>='0'&&e.key<='9'){this.state.inputBuffer+=e.key;this.inputBox.style.display='block';document.getElementById('input-value').innerText=this.state.inputBuffer;return;}
-                        if(e.key==='Backspace'){this.state.inputBuffer=this.state.inputBuffer.slice(0,-1);if(!this.state.inputBuffer)this.inputBox.style.display='none';else document.getElementById('input-value').innerText=this.state.inputBuffer;return;}
-                        if(e.key==='Enter'&&this.state.inputBuffer){
-                            const len=parseInt(this.state.inputBuffer)/1000;
-                            if(len>0){
-                                const l=this.state.points[this.state.points.length-1];
-                                const pos=this.previewLine.geometry.attributes.position.array;
-                                const cur=new THREE.Vector3(pos[3],pos[4],pos[5]);
-                                const dir=new THREE.Vector3().subVectors(cur,l).normalize();
-                                const np=l.clone().add(dir.multiplyScalar(len));
-                                this.state.points.push(np); const cr=this.createCorner(np); const w=this.createWall(l,np);
-                                this.history.push({c:cr,w:w}); this.state.inputBuffer='';this.inputBox.style.display='none';
-                            }
-                        }
-                    }
-                    if(e.key.toLowerCase()==='z')this.undo();
-                    if(this.state.mode==='view'){
-                        if(e.key.toLowerCase()==='r'){this.transformControl.setMode('scale');this.transformControl.showY=true;this.transformControl.showX=true;this.transformControl.showZ=false;}
-                        if(e.key==='w'){this.transformControl.setMode('translate');if(this.transformControl.object?.userData.isWallAttachable){this.transformControl.showY=false;this.transformControl.showZ=false;}else{this.transformControl.showY=false;this.transformControl.showZ=true;}}
-                        if(e.key==='Delete'&&this.transformControl.object){const o=this.transformControl.object;this.selectObject(null);this.scene.remove(o);this.furniture=this.furniture.filter(f=>f!==o);}
-                    }
-                });
-            }
-            setMode(m){this.state.mode=m;document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));document.getElementById(m==='draw'?'btn-draw':'btn-view').classList.add('active');document.getElementById('draw-controls').style.display=m==='draw'?'block':'none';document.getElementById('view-controls').style.display=m==='view'?'block':'none';document.getElementById('library-panel').style.display=m==='view'?'block':'none';this.state.inputBuffer='';this.inputBox.style.display='none';this.measureLines.forEach(l=>l.visible=false);this.tags.forEach(t=>t.style.display='none');if(m==='draw'){this.selectObject(null);this.orbit.enableRotate=false;this.orbit.reset();this.camera.position.set(0,20,0);this.camera.lookAt(0,0,0);this.container.style.cursor='crosshair';this.scene.add(this.previewLine);}else{this.state.isDrawing=false;this.state.points=[];this.previewLine.geometry.setFromPoints([]);this.orbit.enableRotate=true;this.camera.position.set(10,15,15);this.camera.lookAt(0,0,0);this.container.style.cursor='default';this.scene.remove(this.previewLine);}}
-            setAlign(a){this.state.alignment=a;document.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('selected'));event.target.classList.add('selected');}
-            animate(){requestAnimationFrame(this.animate.bind(this));this.orbit.update();this.updateMeasurements();this.renderer.render(this.scene,this.camera);}
+        const angle=Math.atan2(v.z, v.x);
+        const mid=p1.clone().add(p2).multiplyScalar(0.5);
+        mid.y=height/2;
+
+        const wall=new THREE.Mesh(new THREE.BufferGeometry(), this.wallMaterial);
+        wall.position.copy(mid);
+        wall.rotation.y=-angle;
+
+        wall.userData.isWall=true;
+        wall.userData.wallId=++this.wallIdCounter;
+        wall.userData.wallData={
+          p1:[p1.x, p1.z],
+          p2:[p2.x, p2.z],
+          height,
+          thickness,
+          openings:[]
+        };
+
+        this.rebuildWallMesh(wall);
+
+        this.scene.add(wall);
+        this.wallMeshes.push(wall);
+        return wall;
+      }
+
+      findCornerNear(p, eps=0.02){
+        for(const c of this.cornerMeshes){
+          if(c.position.distanceTo(p)<=eps) return c;
+        }
+        return null;
+      }
+      createCorner(p){
+        const found=this.findCornerNear(p);
+        if(found) return found;
+        const c=new THREE.Mesh(
+          new THREE.CylinderGeometry(0.06,0.06,this.config.wallHeight,16),
+          this.wallMaterial
+        );
+        c.position.copy(p);
+        c.position.y=this.config.wallHeight/2;
+        this.scene.add(c);
+        this.cornerMeshes.push(c);
+        return c;
+      }
+
+      /* ---------------- 门窗模型（带 openingSize） ---------------- */
+      createDoorMesh(){
+        const g=new THREE.Group();
+        const w=0.9,h=2.1,d=0.20;
+        const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshStandardMaterial({color:0x5d4037}));
+        f.position.y=h/2; g.add(f);
+        const p=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.05), new THREE.MeshStandardMaterial({color:0x8d6e63}));
+        p.position.set(0,h/2,0.01); g.add(p);
+        const hd=new THREE.Mesh(new THREE.SphereGeometry(0.04), new THREE.MeshStandardMaterial({color:0xcccccc}));
+        hd.position.set(0.35,1,0.11); g.add(hd);
+
+        g.userData.isFurniture=true;
+        g.userData.isWallAttachable=true;
+        g.userData.builtinType='door';
+        g.userData.assetSource='builtin';
+        g.userData.openingSize={ w:0.9, h:2.1, sill:0.0 };
+        g.userData.modelHasSill=true; // door无所谓，但保持一致
+        return g;
+      }
+
+      createWindowMesh(){
+        const g=new THREE.Group();
+        const w=1.5,h=1.4,d=0.20, sill=0.9;
+        const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshStandardMaterial({color:0x333333}));
+        f.position.y=sill + h/2; g.add(f);
+        const gl=new THREE.Mesh(new THREE.BoxGeometry(w-0.1,h-0.1,0.02), new THREE.MeshStandardMaterial({color:0x88ccff, transparent:true, opacity:0.4}));
+        gl.position.y=sill + h/2; gl.position.z=0.11; g.add(gl);
+
+        g.userData.isFurniture=true;
+        g.userData.isWallAttachable=true;
+        g.userData.builtinType='window';
+        g.userData.assetSource='builtin';
+        g.userData.openingSize={ w:1.5, h:1.4, sill:0.9 };
+        g.userData.modelHasSill=true; // 这个模型本身包含了0.9的窗台高度
+        return g;
+      }
+
+      /* ---------------- 放置（门/窗/家具） ---------------- */
+      startPlacing(type, customMesh=null){
+        if(this.state.placingMesh) this.scene.remove(this.state.placingMesh);
+
+        this.state.placingType=type || 'furniture';
+        this.state.placingMesh = customMesh ? customMesh :
+          (type==='door' ? this.createDoorMesh() : this.createWindowMesh());
+
+        // 预览透明
+        this.state.placingMesh.traverse((c)=>{
+          if(c.isMesh){
+            c.material=c.material.clone();
+            c.material.transparent=true;
+            c.material.opacity=0.45;
+          }
+        });
+
+        this.state.placingMesh.visible=false;
+        this.scene.add(this.state.placingMesh);
+
+        if(type==='door' || type==='window'){
+          this.showToast('把鼠标移动到墙上预览：单击放置（墙体会自动挖洞）', 2600);
+        }
+      }
+
+      /* ---------------- Host逻辑：把门窗挂到墙上 + 可拖动沿墙移动 ---------------- */
+      projectPointToWallOffset(hitPointWorld, wall, openingWidth){
+        const d=wall.userData.wallData;
+        const p1=new THREE.Vector3(d.p1[0],0,d.p1[1]);
+        const p2=new THREE.Vector3(d.p2[0],0,d.p2[1]);
+        const v=p2.clone().sub(p1);
+        const len=v.length();
+        if(len<0.001) return {offset:0, point:p1.clone(), dir:new THREE.Vector3(1,0,0), len:0};
+
+        const dir=v.clone().normalize();
+        const hp=new THREE.Vector3(hitPointWorld.x,0,hitPointWorld.z);
+        const t=hp.clone().sub(p1).dot(dir); // meters along
+        const margin=Math.max(0.02, (openingWidth||0.9)/2 + 0.02);
+        const clamped=THREE.MathUtils.clamp(t, margin, Math.max(margin, len-margin));
+        const point=p1.clone().add(dir.clone().multiplyScalar(clamped));
+        return {offset:clamped, point, dir, len};
+      }
+
+      getWallFacingFlip(hit, wall){
+        // 哪一面被点到：用 face.normal 转世界，然后跟 wall 的 local+Z(左法线)比较
+        const d=wall.userData.wallData;
+        const p1=new THREE.Vector3(d.p1[0],0,d.p1[1]);
+        const p2=new THREE.Vector3(d.p2[0],0,d.p2[1]);
+        const dir=p2.clone().sub(p1).normalize();
+        const wallZ = new THREE.Vector3(-dir.z,0,dir.x).normalize(); // wall local +Z
+        const worldNormal = hit.face.normal.clone().applyQuaternion(wall.quaternion).normalize();
+        const dot = worldNormal.dot(wallZ);
+        return dot>=0 ? 1 : -1; // 1: 面向 +Z，-1: 面向 -Z
+      }
+
+      placePreviewOnWall(previewMesh, wall, hit){
+        const os = previewMesh.userData.openingSize || {w:0.9,h:2.1,sill:0};
+        const proj=this.projectPointToWallOffset(hit.point, wall, os.w);
+        const facing=this.getWallFacingFlip(hit, wall);
+        this.hoverHost={ wall, offset:proj.offset, facingFlip:facing };
+
+        // 位置：直接放到墙中心线（更像Revit“hosted”）
+        previewMesh.visible=true;
+        previewMesh.position.set(proj.point.x, 0, proj.point.z);
+
+        // 窗台高度（如果模型本身不含sill，就抬升）
+        const modelHasSill = !!previewMesh.userData.modelHasSill;
+        if(previewMesh.userData.builtinType==='window' || previewMesh.userData.assetType==='window'){
+          previewMesh.position.y = modelHasSill ? 0 : (os.sill||0.9);
+        }else{
+          previewMesh.position.y = 0;
         }
 
-        window.app = new DesignApp();
-    </script>
+        // 朝向：与墙一致 + 根据点击面翻转
+        previewMesh.rotation.set(0, wall.rotation.y + (facing<0 ? Math.PI : 0), 0);
+
+        // 小提示尺寸（用tag1显示 offset）
+        const mid=proj.point.clone();
+        mid.y=1.6;
+        const p=mid.clone().project(this.camera);
+        const x=(p.x*0.5+0.5)*this.container.clientWidth;
+        const y=(p.y*-0.5+0.5)*this.container.clientHeight;
+        this.tags[1].style.display='block';
+        this.tags[1].style.left=x+'px';
+        this.tags[1].style.top=y+'px';
+        this.tags[1].innerText='offset ' + Math.round(proj.offset*1000)+'mm';
+      }
+
+      finalizeHostedInsert(previewMesh){
+        if(!this.hoverHost || !this.hoverHost.wall) return false;
+
+        const wall=this.hoverHost.wall;
+        const d=wall.userData.wallData;
+        if(!d) return false;
+
+        const os = previewMesh.userData.openingSize || {w:0.9,h:2.1,sill:0};
+
+        // 生成 opening 记录
+        const openingId = ++this.openingIdCounter;
+        const op = {
+          id: openingId,
+          kind: (this.state.placingType==='door'?'door':'window'),
+          w: os.w, h: os.h, sill: os.sill||0,
+          offset: this.hoverHost.offset
+        };
+        d.openings.push(op);
+
+        // 让门窗对象记录 host 信息
+        previewMesh.userData.hostWallId = wall.userData.wallId;
+        previewMesh.userData.openingId = openingId;
+        previewMesh.userData.facingFlip = this.hoverHost.facingFlip;
+
+        // 预览转实物：去透明
+        previewMesh.traverse((c)=>{
+          if(c.isMesh){
+            c.material.transparent=false;
+            c.material.opacity=1;
+          }
+        });
+
+        // 放到列表，选中
+        this.furniture.push(previewMesh);
+        this.selectObject(previewMesh);
+
+        // 重建墙（挖洞！）
+        this.rebuildWallMesh(wall);
+
+        this.showToast('门窗已放置：墙体已自动开洞 ✅（选中后可沿墙拖动，按F翻转）', 3000);
+        return true;
+      }
+
+      syncHostedObjectToWall(obj, wall, rebuildHole){
+        // 让 hosted obj 只能沿墙移动，并保持贴墙方向 & 记录 offset
+        const os = obj.userData.openingSize || {w:0.9,h:2.1,sill:0};
+        const proj=this.projectPointToWallOffset(obj.position, wall, os.w);
+
+        // 更新位置/朝向
+        obj.position.set(proj.point.x, obj.position.y, proj.point.z);
+
+        // y：窗台
+        const modelHasSill=!!obj.userData.modelHasSill;
+        const isWindow = (obj.userData.builtinType==='window' || obj.userData.assetType==='window');
+        if(isWindow){
+          obj.position.y = modelHasSill ? 0 : (os.sill||0.9);
+        }else{
+          obj.position.y = 0;
+        }
+
+        const facingFlip = obj.userData.facingFlip || 1;
+        obj.rotation.y = wall.rotation.y + (facingFlip<0 ? Math.PI : 0);
+
+        // 更新 opening offset
+        const d=wall.userData.wallData;
+        if(d && Array.isArray(d.openings)){
+          const oid=obj.userData.openingId;
+          const rec=d.openings.find(o=>o.id===oid);
+          if(rec) rec.offset=proj.offset;
+          if(rebuildHole) this.rebuildWallMesh(wall);
+        }
+      }
+
+      removeHostedOpeningIfAny(obj){
+        if(!obj || !obj.userData || !obj.userData.hostWallId || !obj.userData.openingId) return;
+        const wall=this.findWallById(obj.userData.hostWallId);
+        if(!wall) return;
+        const d=wall.userData.wallData;
+        if(!d || !Array.isArray(d.openings)) return;
+        const oid=obj.userData.openingId;
+        d.openings = d.openings.filter(o=>o.id!==oid);
+        this.rebuildWallMesh(wall);
+      }
+
+      /* ---------------- 选中 ---------------- */
+      selectObject(o){
+        if(o){
+          this.transformControl.attach(o);
+          this.boxHelper.setFromObject(o);
+          this.boxHelper.visible=true;
+
+          // hosted door/window：只显示 X（沿墙）移动，更像Revit
+          if(o.userData && o.userData.hostWallId){
+            this.transformControl.setMode('translate');
+            this.transformControl.setSpace('local');
+            this.transformControl.showX=true;
+            this.transformControl.showZ=false;
+            this.transformControl.showY=false;
+          }else if(o.userData && o.userData.isWallAttachable){
+            this.transformControl.setSpace('local');
+            this.transformControl.showX=true;
+            this.transformControl.showZ=false;
+            this.transformControl.showY=false;
+          }else{
+            this.transformControl.setSpace('world');
+            this.transformControl.showX=true;
+            this.transformControl.showZ=true;
+            this.transformControl.showY=false;
+          }
+        }else{
+          this.transformControl.detach();
+          this.boxHelper.visible=false;
+        }
+      }
+
+      /* ---------------- 拾取地面 ---------------- */
+      getCursorOnPlane(e){
+        const mouse=new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+        this.raycaster.setFromCamera(mouse, this.camera);
+        const hits=this.raycaster.intersectObject(this.plane);
+        if(!hits.length) return null;
+        return hits[0].point.clone();
+      }
+
+      /* ---------------- 撤销 ---------------- */
+      undoWallSegment(){
+        if(!this.history.length) return;
+        const last=this.history.pop();
+        if(last.corner){
+          this.scene.remove(last.corner);
+          this.cornerMeshes=this.cornerMeshes.filter(x=>x!==last.corner);
+        }
+        if(last.wall){
+          this.scene.remove(last.wall);
+          this.wallMeshes=this.wallMeshes.filter(x=>x!==last.wall);
+        }
+        this.showToast('撤销上一段墙', 1200);
+      }
+
+      /* ---------------- DXF（保留增强解析） ---------------- */
+      processDXF(file){
+        const reader=new FileReader();
+        this.setLoading(true,'解析 DXF...');
+        reader.onload=(e)=>{
+          try{
+            const parser=new window.DxfParser();
+            const dxf=parser.parseSync(e.target.result);
+            if(!dxf || !dxf.entities || !dxf.entities.length) throw new Error('DXF 中没有 entities');
+
+            const typeCount={};
+            dxf.entities.forEach(en=>typeCount[en.type]=(typeCount[en.type]||0)+1);
+            console.log('[DXF] types:', typeCount);
+
+            const segs=[];
+            for(const en of dxf.entities){
+              if(en.type==='LINE' && en.vertices && en.vertices.length>=2){
+                const a=en.vertices[0], b=en.vertices[1];
+                segs.push({ax:a.x, ay:a.y, bx:b.x, by:b.y});
+              }
+              if((en.type==='LWPOLYLINE' || en.type==='POLYLINE') && en.vertices && en.vertices.length>=2){
+                const vs=en.vertices;
+                for(let i=0;i<vs.length-1;i++){
+                  segs.push({ax:vs[i].x, ay:vs[i].y, bx:vs[i+1].x, by:vs[i+1].y});
+                }
+                if(en.shape===true || en.closed===true || en.flags===1){
+                  const v1=vs[vs.length-1], v2=vs[0];
+                  segs.push({ax:v1.x, ay:v1.y, bx:v2.x, by:v2.y});
+                }
+              }
+            }
+            if(!segs.length){
+              throw new Error('未找到 LINE/LWPOLYLINE/POLYLINE。DXF可能是INSERT/SPLINE/ARC/HATCH，需要CAD里炸开转线。');
+            }
+
+            let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+            segs.forEach(s=>{
+              minX=Math.min(minX,s.ax,s.bx); maxX=Math.max(maxX,s.ax,s.bx);
+              minY=Math.min(minY,s.ay,s.by); maxY=Math.max(maxY,s.ay,s.by);
+            });
+            const span=Math.max(maxX-minX, maxY-minY);
+            const scale=(span>200)?0.001:1; // 大概率mm -> m
+            const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+
+            // 清空旧墙角
+            this.wallMeshes.forEach(w=>{ this.scene.remove(w); if(w.geometry) w.geometry.dispose(); });
+            this.cornerMeshes.forEach(c=>this.scene.remove(c));
+            this.wallMeshes=[]; this.cornerMeshes=[];
+
+            segs.forEach(s=>{
+              const p1=new THREE.Vector3((s.ax-cx)*scale,0, -(s.ay-cy)*scale);
+              const p2=new THREE.Vector3((s.bx-cx)*scale,0, -(s.by-cy)*scale);
+              if(p1.distanceTo(p2)>0.2){
+                this.createWall(p1,p2);
+                this.createCorner(p1);
+                this.createCorner(p2);
+              }
+            });
+
+            this.orbit.reset();
+            this.camera.position.set(0,30,0);
+            this.camera.lookAt(0,0,0);
+            this.showToast('DXF 导入完成：已建墙。若失败请在CAD里 EXPLODE/转LINE 或 (LW)POLYLINE', 4200);
+          }catch(err){
+            console.error(err);
+            alert('DXF解析失败：'+(err.message||'未知错误'));
+          }finally{
+            this.setLoading(false);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      /* ---------------- 资产库（保留） ---------------- */
+      async loadSavedAssets(){
+        try{
+          const assets=await this.db.getAllAssets();
+          this.customContainer.innerHTML='';
+          assets.forEach(rec=>this.addAssetCard(rec));
+        }catch(e){console.error(e);}
+      }
+
+      addAssetCard(rec){
+        const div=document.createElement('div');
+        div.className='item-card';
+        let icon='fa-cube', color='#666';
+        if(rec.type==='door'){icon='fa-door-closed'; color='#8d6e63';}
+        else if(rec.type==='window'){icon='fa-window-maximize'; color='#88ccff';}
+        else{icon='fa-couch'; color='#ff5000';}
+
+        div.innerHTML =
+          '<div class="item-img" style="color:'+color+'"><i class="fa-solid '+icon+'"></i></div>'+
+          '<div class="item-name">'+this.escapeHTML(rec.name)+'</div>'+
+          '<div class="delete-btn" title="删除"><i class="fa-solid fa-times"></i></div>';
+
+        div.onclick=(e)=>{
+          if(e.target.closest('.delete-btn')) return;
+          this.loadAndPlaceAsset(rec);
+        };
+        div.querySelector('.delete-btn').onclick=async(e)=>{
+          e.stopPropagation();
+          if(!confirm('删除 "'+rec.name+'"?')) return;
+          await this.db.deleteAsset(rec.id);
+          div.remove();
+          this.showToast('已删除：'+this.escapeHTML(rec.name), 1600);
+        };
+        this.customContainer.appendChild(div);
+      }
+
+      async handleUpload(file,type){
+        this.setLoading(true,'保存模型...');
+        try{
+          const rec=await this.db.addAsset(file,type);
+          this.addAssetCard(rec);
+          await this.loadAndPlaceAsset(rec);
+        }catch(e){
+          console.error(e);
+          alert('保存失败：可能是浏览器容量不足');
+        }finally{
+          this.setLoading(false);
+        }
+      }
+
+      /**
+       * 混元AI：图片转3D（GLB）并自动加入本地库
+       * 依赖后端接口：
+       *  - POST /api/ai3d/upload  { filename, dataUrl } -> { imageUrl }
+       *  - POST /api/ai3d/submit  { ImageUrl } -> { JobId }
+       *  - POST /api/ai3d/query   { JobId } -> { Status, ResultFile3Ds... }
+       *  - GET  /api/ai3d/download?url=...
+       */
+      async hunyuanImageTo3D(file, type='furniture', onStatus=()=>{}){
+        const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+        // 1) file -> dataURL
+        onStatus('读取图片...');
+        const dataUrl = await new Promise((res, rej)=>{
+          const fr = new FileReader();
+          fr.onload = ()=>res(String(fr.result||''));
+          fr.onerror = ()=>rej(new Error('读取图片失败'));
+          fr.readAsDataURL(file);
+        });
+
+        // 2) upload to server -> get public ImageUrl
+        onStatus('上传图片到服务器...');
+        const up = await fetch('/api/ai3d/upload', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ filename: file.name || 'image', dataUrl })
+        });
+        if(!up.ok) throw new Error('上传图片失败：' + await up.text());
+        const upData = await up.json();
+        const imageUrl = upData?.imageUrl || upData?.ImageUrl || (upData?.data && (upData.data.imageUrl||upData.data.ImageUrl));
+        if(!imageUrl) throw new Error('上传成功但未拿到 imageUrl：' + JSON.stringify(upData));
+
+        // 3) submit job
+        onStatus('提交图生3D任务...');
+        const s = await fetch('/api/ai3d/submit', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ ImageUrl: imageUrl })
+        });
+        if(!s.ok) throw new Error('提交任务失败：' + await s.text());
+        const sData = await s.json();
+        const jobId = sData?.Response?.JobId || sData?.Response?.jobId || sData?.JobId || sData?.jobId;
+        if(!jobId) throw new Error('提交成功但未拿到 JobId（接口返回里可能在 Response.JobId）：' + JSON.stringify(sData));
+
+        // 4) poll query
+        onStatus('任务已提交，生成中（轮询查询）...');
+        for(;;){
+          await sleep(2000);
+          const q = await fetch('/api/ai3d/query', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ JobId: String(jobId) })
+          });
+          if(!q.ok) throw new Error('查询任务失败：' + await q.text());
+          const qData = await q.json();
+
+          const status = String(qData?.Status || qData?.status || '').toUpperCase();
+          if(status && status !== 'DONE') onStatus('生成中... ' + status);
+
+          if(status === 'FAIL'){
+            throw new Error('生成失败：' + (qData?.ErrorMessage || qData?.error || JSON.stringify(qData)));
+          }
+
+          if(status === 'DONE'){
+            // find GLB url
+            const files = qData?.ResultFile3Ds || qData?.Files || qData?.files || [];
+            let glbUrl = '';
+            if(Array.isArray(files)){
+              const glb = files.find(x => String(x?.Type || x?.type || '').toUpperCase() === 'GLB') || files[0];
+              glbUrl = glb?.Url || glb?.url || '';
+            }else if(typeof files === 'object' && files){
+              glbUrl = files?.Url || files?.url || '';
+            }
+            if(!glbUrl) throw new Error('任务完成但没有GLB地址：' + JSON.stringify(qData));
+
+            // 5) download via proxy
+            onStatus('下载GLB模型...');
+            const d = await fetch('/api/ai3d/download?url=' + encodeURIComponent(glbUrl));
+            if(!d.ok) throw new Error('下载GLB失败：' + await d.text());
+            const blob = await d.blob();
+
+            // 6) convert to File and reuse existing save/place flow
+            const outName = ('hunyuan_' + (file.name||'image').replace(/\.[^.]+$/,'')).slice(0,40) + '.glb';
+            const glbFile = new File([blob], outName, { type:'model/gltf-binary' });
+
+            onStatus('保存到本地库并进入放置...');
+            await this.handleUpload(glbFile, type);
+            onStatus('完成 ✅');
+            return;
+          }
+        }
+      }
+
+      
+      loadAndPlaceAsset(rec){
+        const url=URL.createObjectURL(rec.blob);
+        const loader=new GLTFLoader();
+        this.setLoading(true,'加载模型...');
+        loader.load(url,(gltf)=>{
+          URL.revokeObjectURL(url);
+          const model=gltf.scene;
+
+          // 归一化：把模型中心移到原点
+          const box=new THREE.Box3().setFromObject(model);
+          const size=new THREE.Vector3(); box.getSize(size);
+          const center=new THREE.Vector3(); box.getCenter(center);
+          model.position.sub(center);
+
+          const grp=new THREE.Group();
+          grp.add(model);
+
+          // 自定义 door/window：目标高度，顺带计算 openingSize（真实挖洞用这个）
+          if(rec.type==='door' || rec.type==='window'){
+            const targetH = rec.type==='door' ? 2.1 : 1.4;
+            const sc = targetH / Math.max(0.0001, size.y);
+            grp.scale.set(sc,sc,sc);
+            // 把模型底部落到y=0
+            // 注意：这里只做近似，模型如果不是以底部为准，可能需要你以后加“对齐底部”功能
+            model.position.y += size.y/2;
+
+            // 计算缩放后尺寸
+            const scaledW = Math.max(0.3, size.x * sc);
+            const scaledH = Math.max(0.3, size.y * sc);
+
+            grp.userData.isWallAttachable = true;
+            grp.userData.assetSource='custom';
+            grp.userData.assetType=rec.type;
+            grp.userData.assetName=rec.name;
+
+            // custom window 默认需要窗台高度，模型大概率不自带
+            const sill = (rec.type==='window') ? 0.9 : 0.0;
+            grp.userData.openingSize = { w: scaledW, h: scaledH, sill };
+            grp.userData.modelHasSill = false;
+          }else{
+            // 家具：缩放到大致1.5m
+            const md=Math.max(size.x,size.y,size.z);
+            const sc=1.5/Math.max(0.0001,md);
+            grp.scale.set(sc,sc,sc);
+            model.position.y += size.y/2;
+            grp.userData.isWallAttachable=false;
+            grp.userData.assetSource='custom';
+            grp.userData.assetType='furniture';
+            grp.userData.assetName=rec.name;
+          }
+
+          grp.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+          grp.userData.isFurniture=true;
+
+          if(rec.type==='door') this.startPlacing('door', grp);
+          else if(rec.type==='window') this.startPlacing('window', grp);
+          else this.startPlacing('furniture', grp);
+
+          this.setLoading(false);
+        }, undefined, (err)=>{
+          console.error(err);
+          alert('模型加载失败：请确认 glb/gltf 未损坏');
+          this.setLoading(false);
+        });
+      }
+
+      /* ---------------- 交互核心 ---------------- */
+      initInteraction(){
+        const canvas=this.renderer.domElement;
+
+        document.getElementById('dxf-input').addEventListener('change', e=>{
+          const f=e.target.files && e.target.files[0];
+          if(f) this.processDXF(f);
+          e.target.value='';
+        });
+        document.getElementById('upload-door-input').addEventListener('change', e=>{
+          const f=e.target.files && e.target.files[0];
+          if(f) this.handleUpload(f,'door');
+          e.target.value='';
+        });
+        document.getElementById('upload-window-input').addEventListener('change', e=>{
+          const f=e.target.files && e.target.files[0];
+          if(f) this.handleUpload(f,'window');
+          e.target.value='';
+        });
+        document.getElementById('upload-furniture-input').addEventListener('change', e=>{
+          const f=e.target.files && e.target.files[0];
+          if(f) this.handleUpload(f,'furniture');
+          e.target.value='';
+        });
+
+        // 外部拖拽 glb/gltf
+        canvas.addEventListener('dragover', e=>e.preventDefault());
+        canvas.addEventListener('drop', e=>{
+          e.preventDefault();
+          const file=e.dataTransfer.files && e.dataTransfer.files[0];
+          if(!file) return;
+          const name=file.name.toLowerCase();
+          if(name.endsWith('.glb') || name.endsWith('.gltf')) this.handleUpload(file,'furniture');
+          else alert('请拖入 .glb 或 .gltf 文件');
+        });
+
+        // 右键结束画墙
+        canvas.addEventListener('contextmenu', (e)=>{
+          if(this.state.mode==='draw' && this.wallTool.drawing){
+            e.preventDefault();
+            this.endWallDrawing(true);
+            this.showToast('右键结束画墙', 1200);
+          }
+        });
+
+        // 点击（左键）
+        canvas.addEventListener('pointerdown', (e)=>{
+          if(e.button!==0) return;
+
+          // 正在放置（门/窗/家具）
+          if(this.state.placingType && this.state.placingMesh){
+            // door/window：必须放在墙上
+            if(this.state.placingType==='door' || this.state.placingType==='window'){
+              if(this.state.placingMesh.visible && this.hoverHost && this.hoverHost.wall){
+                const ok=this.finalizeHostedInsert(this.state.placingMesh);
+                if(ok){
+                  this.state.placingType=null;
+                  this.state.placingMesh=null;
+                  this.hoverHost=null;
+                  this.tags[1].style.display='none';
+                }
+              }else{
+                this.showToast('请把鼠标移动到墙上再单击放置', 1400);
+              }
+              return;
+            }
+
+            // furniture：放地面
+            if(this.state.placingMesh.visible){
+              this.state.placingMesh.traverse(c=>{
+                if(c.isMesh){ c.material.transparent=false; c.material.opacity=1; }
+              });
+              this.furniture.push(this.state.placingMesh);
+              this.selectObject(this.state.placingMesh);
+              this.state.placingType=null;
+              this.state.placingMesh=null;
+              return;
+            }
+          }
+
+          // 建筑模式：Revit式画墙
+          if(this.state.mode==='draw'){
+            const p=this.getCursorOnPlane(e);
+            if(!p) return;
+            const s=this.findSnap(p).point;
+
+            if(!this.wallTool.drawing){
+              this.beginWallDrawing(s);
+              return;
+            }
+
+            const start=this.wallTool.start.clone();
+            const endRes=this.updateWallPreviewFrom(start, s, e.shiftKey);
+            if(!endRes.ok) return;
+
+            const end=endRes.end.clone();
+            const refRes=this.applyRefOffset(start,end);
+            const a=refRes.start, b=refRes.end;
+
+            const wall=this.createWall(a,b,{height:this.config.wallHeight, thickness:this.config.wallThickness});
+            const c2=this.createCorner(b.clone().setY(0));
+            this.createCorner(a.clone().setY(0));
+            this.history.push({wall, corner:c2});
+
+            if(this.wallTool.chain){
+              this.wallTool.start=end.clone();
+              return;
+            }
+            this.endWallDrawing(true);
+            return;
+          }
+
+          // 布置模式：选中对象
+          if(this.state.mode==='view'){
+            const mouse=new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+            this.raycaster.setFromCamera(mouse, this.camera);
+
+            const hits=this.raycaster.intersectObjects(this.furniture, true);
+            if(hits.length){
+              let t=hits[0].object;
+              while(t.parent && !t.userData.isFurniture) t=t.parent;
+              this.selectObject(t);
+            }else{
+              this.selectObject(null);
+            }
+          }
+        });
+
+        // 鼠标移动：墙预览 + 门窗贴墙预览 + 家具贴地预览
+        canvas.addEventListener('pointermove', (e)=>{
+          const mouse=new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+
+          // 放置预览
+          if(this.state.placingType && this.state.placingMesh){
+            if(this.state.placingType==='furniture'){
+              this.raycaster.setFromCamera(mouse, this.camera);
+              const hits=this.raycaster.intersectObject(this.plane);
+              if(hits.length){
+                this.state.placingMesh.visible=true;
+                this.state.placingMesh.position.copy(hits[0].point);
+              }
+              return;
+            }
+
+            // door/window：贴墙预览
+            if(this.state.placingType==='door' || this.state.placingType==='window'){
+              this.raycaster.setFromCamera(mouse, this.camera);
+              const hits=this.raycaster.intersectObjects(this.wallMeshes, false);
+              if(hits.length){
+                const hit=hits[0];
+                this.placePreviewOnWall(this.state.placingMesh, hit.object, hit);
+              }else{
+                this.state.placingMesh.visible=false;
+                this.hoverHost=null;
+                this.tags[1].style.display='none';
+              }
+              return;
+            }
+          }
+
+          // 画墙预览
+          if(this.state.mode==='draw' && this.wallTool.drawing && this.wallTool.start){
+            const p=this.getCursorOnPlane(e);
+            if(!p) return;
+            this.updateWallPreviewFrom(this.wallTool.start, p, e.shiftKey);
+          }
+        });
+
+        // 键盘
+        window.addEventListener('keydown', (e)=>{
+          // Tab 切换吸附
+          if(e.key==='Tab' && this.state.mode==='draw'){
+            e.preventDefault();
+            this.wallTool.snapMode=(this.wallTool.snapMode+1)%3;
+            document.getElementById('snap-pill').innerText = (this.wallTool.snapMode===0?'全部':(this.wallTool.snapMode===1?'端点':'关闭'));
+            this.showToast('吸附：<b>'+document.getElementById('snap-pill').innerText+'</b>', 1200);
+            return;
+          }
+
+          // Space 翻参照线
+          if(e.code==='Space' && this.state.mode==='draw'){
+            e.preventDefault();
+            this.wallTool.flip*=-1;
+            this.showToast('参照线方向：<b>'+(this.wallTool.flip===1?'默认':'翻转')+'</b>', 1200);
+            return;
+          }
+
+          // Esc 取消放置 / 结束画墙
+          if(e.key==='Escape'){
+            if(this.state.mode==='draw' && this.wallTool.drawing){
+              this.endWallDrawing(true);
+              this.showToast('Esc 结束画墙', 1200);
+              return;
+            }
+            if(this.state.placingType){
+              this.scene.remove(this.state.placingMesh);
+              this.state.placingType=null;
+              this.state.placingMesh=null;
+              this.hoverHost=null;
+              this.tags[1].style.display='none';
+              this.showToast('已取消放置', 1200);
+              return;
+            }
+          }
+
+          // Backspace / Z 撤销上一段墙
+          if((e.key==='Backspace' || e.key.toLowerCase()==='z') && this.state.mode==='draw'){
+            this.undoWallSegment();
+            return;
+          }
+
+          // 数字输入 + Enter 定长（画墙）
+          if(this.state.mode==='draw' && this.wallTool.drawing){
+            if(e.key>='0' && e.key<='9'){
+              this.wallTool.inputBuffer+=e.key;
+              this.inputBox.style.display='block';
+              document.getElementById('input-value').innerText=this.wallTool.inputBuffer;
+              return;
+            }
+            if(e.key==='Enter' && this.wallTool.inputBuffer){
+              const lenM=(parseInt(this.wallTool.inputBuffer,10)||0)/1000;
+              if(lenM>0 && this.wallTool.start){
+                const start=this.wallTool.start.clone();
+                const dir=this.wallTool.lastDir.clone();
+                if(dir.lengthSq()<1e-6) dir.set(1,0,0);
+                const end=start.clone().add(dir.multiplyScalar(lenM));
+                const refRes=this.applyRefOffset(start,end);
+                const a=refRes.start,b=refRes.end;
+
+                const wall=this.createWall(a,b,{height:this.config.wallHeight, thickness:this.config.wallThickness});
+                const c2=this.createCorner(b.clone().setY(0));
+                this.createCorner(a.clone().setY(0));
+                this.history.push({wall, corner:c2});
+
+                if(this.wallTool.chain){
+                  this.wallTool.start=end.clone();
+                }else{
+                  this.endWallDrawing(true);
+                }
+              }
+              this.wallTool.inputBuffer='';
+              this.inputBox.style.display='none';
+              return;
+            }
+          }
+
+          // 选中门窗：F 翻转朝向（Flip）
+          if(e.key.toLowerCase()==='f'){
+            const obj=this.transformControl.object;
+            if(obj && obj.userData && obj.userData.hostWallId){
+              obj.userData.facingFlip = (obj.userData.facingFlip||1) * -1;
+              const wall=this.findWallById(obj.userData.hostWallId);
+              if(wall){
+                this.syncHostedObjectToWall(obj, wall, true);
+                this.showToast('已翻转门窗朝向（F）', 1200);
+              }
+              return;
+            }
+          }
+
+          // 布置模式：W/E/R/Del（保留）
+          if(this.state.mode==='view'){
+            if(e.key.toLowerCase()==='w'){
+              this.transformControl.setMode('translate');
+            }
+            if(e.key.toLowerCase()==='e'){
+              this.transformControl.setMode('rotate');
+              this.transformControl.showY=true;
+            }
+            if(e.key.toLowerCase()==='r'){
+              this.transformControl.setMode('scale');
+              this.transformControl.showX=true;
+              this.transformControl.showY=true;
+              this.transformControl.showZ=true;
+            }
+            if(e.key==='Delete' && this.transformControl.object){
+              const o=this.transformControl.object;
+
+              // 如果是hosted门窗：先删洞
+              this.removeHostedOpeningIfAny(o);
+
+              this.selectObject(null);
+              this.scene.remove(o);
+              this.furniture=this.furniture.filter(x=>x!==o);
+              this.showToast('已删除对象', 1200);
+            }
+          }
+        });
+      }
+
+      /* ---------------- 模式切换 ---------------- */
+      setMode(mode){
+        this.state.mode=mode;
+        document.getElementById('btn-draw').classList.remove('active');
+        document.getElementById('btn-view').classList.remove('active');
+        document.getElementById(mode==='draw'?'btn-draw':'btn-view').classList.add('active');
+
+        document.getElementById('draw-controls').style.display=mode==='draw'?'block':'none';
+        document.getElementById('view-controls').style.display=mode==='view'?'block':'none';
+        document.getElementById('library-panel').style.display=mode==='view'?'block':'none';
+
+        document.getElementById('mode-pill').innerText=mode==='draw'?'建筑':'布置';
+        document.getElementById('hint-pill').innerHTML = mode==='draw'
+          ? '<i class="fa-solid fa-lightbulb"></i> 点击起点→点击终点（链式）｜右键/ESC结束｜Tab吸附｜Space翻转参照｜输入数字+Enter定长'
+          : '<i class="fa-solid fa-lightbulb"></i> 选择门/窗→移到墙上预览→单击放置(自动挖洞)｜选中按F翻转｜拖动沿墙移动';
+
+        // 切换模式时：结束画墙预览 / 取消放置预览
+        if(mode!=='draw') this.endWallDrawing(true);
+        if(mode==='draw'){
+          this.selectObject(null);
+          this.orbit.enableRotate=false;
+          this.camera.position.set(0,20,0);
+          this.camera.lookAt(0,0,0);
+          this.renderer.domElement.style.cursor='crosshair';
+        }else{
+          this.orbit.enableRotate=true;
+          this.camera.position.set(10,15,15);
+          this.camera.lookAt(0,0,0);
+          this.renderer.domElement.style.cursor='default';
+        }
+      }
+
+      /* ---------------- 动画 ---------------- */
+      animate(){
+        requestAnimationFrame(()=>this.animate());
+        this.orbit.update();
+        this.renderer.render(this.scene,this.camera);
+      }
+    }
+
+    window.app = new DesignApp();
+  
+
+  // ================== 混元AI 图生3D 面板交互 ==================
+  (function initHunyuanPanel(){
+    const panel = document.getElementById('hunyuan3d-panel');
+    if(!panel) return;
+
+    const collapseBtn = document.getElementById('hy-collapse-btn');
+    const fileInput = document.getElementById('hy-file');
+    const previewImg = document.getElementById('hy-preview-img');
+    const previewEmpty = document.getElementById('hy-preview-empty');
+    const typeSel = document.getElementById('hy-type');
+    const btn = document.getElementById('hy-generate-btn');
+    const statusEl = document.getElementById('hy-status');
+
+    let selectedFile = null;
+    let collapsed = false;
+
+    const setStatus = (t)=>{
+      statusEl.textContent = String(t || '');
+    };
+
+    collapseBtn.addEventListener('click', ()=>{
+      collapsed = !collapsed;
+      // hide all rows except title when collapsed
+      const kids = [...panel.children];
+      for(const el of kids){
+        if(el.classList.contains('hy-title')) continue;
+        el.style.display = collapsed ? 'none' : '';
+      }
+      collapseBtn.textContent = collapsed ? '展开' : '折叠';
+    });
+
+    fileInput.addEventListener('change', ()=>{
+      const f = fileInput.files && fileInput.files[0];
+      selectedFile = f || null;
+
+      if(!f){
+        previewImg.style.display='none';
+        previewEmpty.style.display='block';
+        previewEmpty.textContent='（请选择一张图片）';
+        btn.disabled = true;
+        setStatus('未开始');
+        return;
+      }
+
+      // preview
+      const url = URL.createObjectURL(f);
+      previewImg.src = url;
+      previewImg.onload = ()=>{
+        previewImg.style.display='block';
+        previewEmpty.style.display='none';
+      };
+      previewImg.onerror = ()=>{
+        previewImg.style.display='none';
+        previewEmpty.style.display='block';
+        previewEmpty.textContent='图片预览失败，请换一张';
+      };
+
+      btn.disabled = false;
+      setStatus('已选择图片：' + (f.name || 'image'));
+    });
+
+    btn.addEventListener('click', async ()=>{
+      if(!selectedFile) return;
+
+      // UI lock
+      btn.disabled = true;
+      fileInput.disabled = true;
+      typeSel.disabled = true;
+
+      const type = typeSel.value;
+
+      try{
+        setStatus('开始...');
+        // 同步全局 loading 遮罩（如果你的网页有）
+        window.app.setLoading?.(true, '混元AI 图生3D生成中...');
+        await window.app.hunyuanImageTo3D(selectedFile, type, (t)=>{
+          setStatus(t);
+          window.app.setLoading?.(true, t);
+        });
+        window.app.showToast?.('✅ 混元AI 模型已加入本地库，可放置', 2200);
+      }catch(e){
+        console.error(e);
+        const msg = e?.message || '生成失败';
+        setStatus('失败：' + msg);
+        alert(msg);
+      }finally{
+        window.app.setLoading?.(false);
+        fileInput.disabled = false;
+        typeSel.disabled = false;
+        btn.disabled = false;
+      }
+    });
+
+    setStatus('未开始');
+  })();
+
+</script>
 </body>
 </html>
